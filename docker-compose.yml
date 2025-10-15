@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_PATH=/models/wildfire_model.pkl
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./models:/models
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - wildfire-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    networks:
+      - wildfire-net
+
+  etl:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile
+    volumes:
+      - ./data:/data
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - wildfire-net
+    profiles:
+      - etl
+
+  ml-training:
+    build:
+      context: ./ml
+      dockerfile: Dockerfile
+    volumes:
+      - ./data:/data
+      - ./models:/models
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - wildfire-net
+    profiles:
+      - training
+
+networks:
+  wildfire-net:
+    driver: bridge
+
+volumes:
+  models:
+  data:

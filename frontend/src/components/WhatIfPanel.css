@@ -1,0 +1,151 @@
+.what-if-panel {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+}
+
+.what-if-panel h3 {
+  margin: 0 0 1.5rem 0;
+  color: #333;
+  font-size: 1.25rem;
+}
+
+.scenario-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-group label {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.input-group input[type="range"] {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: #ddd;
+  outline: none;
+  cursor: pointer;
+}
+
+.input-group input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #2196f3;
+  cursor: pointer;
+}
+
+.input-group .value {
+  font-size: 0.95rem;
+  color: #333;
+  font-weight: 600;
+  align-self: flex-end;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.action-buttons button {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.run-button {
+  background: #2196f3;
+  color: white;
+}
+
+.run-button:hover:not(:disabled) {
+  background: #1976d2;
+}
+
+.run-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.reset-button {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.reset-button:hover {
+  background: #e0e0e0;
+}
+
+.results-panel {
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 4px;
+  border-left: 4px solid #2196f3;
+}
+
+.results-panel h4 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1rem;
+}
+
+.result-item,
+.comparison {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.result-item:last-child {
+  border-bottom: none;
+}
+
+.result-item .label,
+.comparison .label {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.result-item .value,
+.comparison .value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.risk-level {
+  text-transform: capitalize;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  background: #e0e0e0;
+}
+
+.comparison .value.increase {
+  color: #f44336;
+}
+
+.comparison .value.decrease {
+  color: #4caf50;
+}
