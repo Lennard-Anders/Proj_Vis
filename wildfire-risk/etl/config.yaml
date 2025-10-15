@@ -1,0 +1,9 @@
+paths:
+  sample_dir: data/sample
+bbox:
+  min_lat: 30.0
+  max_lat: 50.0
+  min_lon: -130.0
+  max_lon: -100.0
+schedules:
+  etl: "15 02 * * *"

@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: etl-daily
+  namespace: wildfire-risk
+spec:
+  schedule: "15 02 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: etl-technical-user
+          restartPolicy: OnFailure
+          containers:
+            - name: etl
+              image: ghcr.io/ORG/wildfire-etl:main
+              args: ["bash", "-lc", "make etl && make features && make bundle"]
+              envFrom:
+                - secretRef:
+                    name: etl-secrets

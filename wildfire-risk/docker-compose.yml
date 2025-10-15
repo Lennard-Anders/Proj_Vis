@@ -1,0 +1,96 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: wildfire
+      POSTGRES_USER: wildfire
+      POSTGRES_PASSWORD: wildfire
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "wildfire"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      MODEL_BUNDLE_PATH: /app/models/bundles/current
+      DATABASE_URL: postgres://wildfire:wildfire@db:5432/wildfire
+    volumes:
+      - ./backend/models/bundles/current:/app/models/bundles/current:ro
+      - ./data/sample:/data/sample:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  frontend:
+    image: node:20
+    working_dir: /app
+    command: bash -lc "npm install && npm run build && cp -r dist/* /app/dist_export/ && tail -f /dev/null"
+    volumes:
+      - ./frontend:/app
+      - frontend_dist:/app/dist_export
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080/api
+
+  nginx:
+    build:
+      context: .
+      dockerfile: infra/nginx/Dockerfile
+    ports:
+      - "8080:80"
+    volumes:
+      - frontend_dist:/usr/share/nginx/html
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
+
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:0.11.0
+    command: ["-nginx.scrape-uri", "http://nginx:80/stub_status"]
+    ports:
+      - "9113:9113"
+    depends_on:
+      nginx:
+        condition: service_started
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - backend
+      - nginx-exporter
+
+  grafana:
+    image: grafana/grafana:10.4.5
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+
+volumes:
+  db_data:
+  frontend_dist:
