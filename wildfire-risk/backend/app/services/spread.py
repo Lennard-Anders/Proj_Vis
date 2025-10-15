@@ -7,11 +7,14 @@ from ..models.schemas import SpreadRequest, SpreadResponse
 
 
 def run_spread_simulation(payload: SpreadRequest) -> SpreadResponse:
-  rng = random.Random(hash(repr(payload.dict())))
-    features = []
+    rng = random.Random(hash(repr(payload.dict())))
+    features: List[dict] = []
     base_points = _expand_points(payload.ignition_points)
     for step in range(payload.steps):
-        ring = [[point["lon"] + 0.01 * step, point["lat"] + 0.01 * step] for point in base_points]
+        ring = [
+            [point["lon"] + 0.01 * step, point["lat"] + 0.01 * step]
+            for point in base_points
+        ]
         if ring and ring[0] != ring[-1]:
             ring.append(ring[0])
         features.append(
