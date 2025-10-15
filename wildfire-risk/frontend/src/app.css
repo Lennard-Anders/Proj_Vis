@@ -1,0 +1,136 @@
+:root {
+  font-family: "Segoe UI", sans-serif;
+  color: #17324f;
+  background-color: #f6f9fc;
+}
+
+body {
+  margin: 0;
+}
+
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-header {
+  padding: 1.5rem 2rem;
+  background: #13243b;
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.app-main {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+  padding: 1rem 2rem 2rem;
+  flex: 1;
+}
+
+.app-main__maps {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+}
+
+.app-main__panels {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.panel {
+  background: #fff;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.panel h2 {
+  margin-top: 0;
+}
+
+.tri-view {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.tri-view__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem;
+}
+
+.tri-view__deck {
+  height: 320px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0f1c2a;
+}
+
+.tri-view__cell {
+  padding: 0.5rem;
+  background: #eef4ff;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+}
+
+.map-legend ul,
+.map-heatmap ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.map-legend li,
+.map-heatmap li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.legend-low {
+  background: #4caf50;
+}
+
+.legend-medium {
+  background: #ff9800;
+}
+
+.legend-high {
+  background: #f44336;
+}
+
+.event-explorer__strip {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+}
+
+.event-explorer__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.event-explorer__item img {
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #d9e3f0;
+}

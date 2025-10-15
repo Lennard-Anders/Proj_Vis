@@ -1,0 +1,11 @@
+[
+  {"name": "date", "type": "date"},
+  {"name": "lat", "type": "float"},
+  {"name": "lon", "type": "float"},
+  {"name": "wind_speed_10m", "type": "float"},
+  {"name": "rh", "type": "float"},
+  {"name": "rain_24h", "type": "float"},
+  {"name": "ignition", "type": "int"},
+  {"name": "dqf_mask", "type": "int"},
+  {"name": "data_availability", "type": "float"}
+]
