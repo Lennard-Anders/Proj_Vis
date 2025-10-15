@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import DeckGL from "@deck.gl/react";
+import type { PickingInfo } from "@deck.gl/core";
 import { ScatterplotLayer } from "@deck.gl/layers";
 import type { RiskGridCell } from "../api/types";
 import { useRisk, useScenario, useLoading } from "../state/selectors";
@@ -65,8 +66,8 @@ const TriView: React.FC = () => {
               layers={layers}
               initialViewState={INITIAL_VIEW_STATE}
               controller
-              getTooltip={({ object }: { object: RiskGridCell | null }) => {
-                const cell = object ?? undefined;
+              getTooltip={(info: PickingInfo<RiskGridCell>) => {
+                const cell = (info && (info.object as RiskGridCell | null)) || undefined;
                 if (!cell) {
                   return null;
                 }
