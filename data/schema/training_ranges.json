@@ -1,0 +1,42 @@
+{
+  "version": "1.0.0",
+  "training_period": "2020-2023",
+  "ranges": {
+    "wind_speed_10m": {
+      "min": 0.0,
+      "max": 30.0,
+      "unit": "m/s",
+      "p01": 1.2,
+      "p99": 18.5
+    },
+    "rh": {
+      "min": 0.0,
+      "max": 100.0,
+      "unit": "%",
+      "p01": 15.0,
+      "p99": 95.0
+    },
+    "rain_24h": {
+      "min": 0.0,
+      "max": 100.0,
+      "unit": "mm",
+      "p01": 0.0,
+      "p99": 35.0
+    },
+    "t2m": {
+      "min": 250.0,
+      "max": 320.0,
+      "unit": "K",
+      "p01": 268.0,
+      "p99": 310.0
+    },
+    "vpd": {
+      "min": 0.0,
+      "max": 8.0,
+      "unit": "kPa",
+      "p01": 0.1,
+      "p99": 5.5
+    }
+  },
+  "notes": "Ranges based on ERA5 reanalysis 2020-2023 over Americas"
+}

@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0.0",
+  "description": "Parquet feature columns for wildfire risk modeling",
+  "columns": [
+    {
+      "name": "date",
+      "type": "string",
+      "format": "YYYY-MM-DD",
+      "description": "Date of observation"
+    },
+    {
+      "name": "lat",
+      "type": "float",
+      "unit": "degrees",
+      "description": "Latitude (WGS84)"
+    },
+    {
+      "name": "lon",
+      "type": "float",
+      "unit": "degrees",
+      "description": "Longitude (WGS84)"
+    },
+    {
+      "name": "month",
+      "type": "int",
+      "range": [1, 12],
+      "description": "Month of year"
+    },
+    {
+      "name": "region_id",
+      "type": "int",
+      "description": "Geographic region identifier"
+    },
+    {
+      "name": "wind_speed_10m",
+      "type": "float",
+      "unit": "m/s",
+      "range": [0, 30],
+      "description": "Wind speed at 10 meters"
+    },
+    {
+      "name": "rh",
+      "type": "float",
+      "unit": "%",
+      "range": [0, 100],
+      "description": "Relative humidity"
+    },
+    {
+      "name": "t2m",
+      "type": "float",
+      "unit": "K",
+      "range": [250, 320],
+      "description": "Temperature at 2 meters"
+    },
+    {
+      "name": "ignition",
+      "type": "int",
+      "range": [0, 1],
+      "description": "Fire ignition label"
+    }
+  ]
+}

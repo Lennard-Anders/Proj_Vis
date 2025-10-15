@@ -1,0 +1,63 @@
+# ETL Configuration
+
+# Data paths
+data:
+  raw_dir: /data/raw
+  processed_dir: /data/processed
+  output_dir: /data/features
+
+# Americas bounding box
+bbox:
+  min_lon: -170.0
+  min_lat: -60.0
+  max_lon: -30.0
+  max_lat: 75.0
+
+# Grid definition
+grid:
+  resolution: 0.25  # degrees
+  projection: "EPSG:4326"
+
+# Temporal settings
+temporal:
+  start_date: "2020-01-01"
+  end_date: "2024-12-31"
+  lags:
+    - 3d   # 3-day lag
+    - 7d   # 7-day lag
+    - 24h  # 24-hour lag
+    - 72h  # 72-hour lag
+
+# Feature engineering
+features:
+  spatial_radius_km: 20  # For recent_fires feature
+  climatology_baseline: "1991-2020"
+  
+# Data sources
+sources:
+  fdcf:
+    provider: "earth_engine"
+    collection: "FIRMS/VIIRS"
+  weather:
+    provider: "era5"
+    variables:
+      - t2m
+      - dewpoint
+      - u10
+      - v10
+      - gust_10m
+      - precipitation
+
+# Quality control
+quality:
+  min_availability: 0.80
+  exclude_dqf: [0, 3]
+  
+# Labeling
+labels:
+  fire_masks: [10, 11, 30, 31]
+  negative_ratio: 10
+  hard_negative_features:
+    - wind_speed_10m
+    - rh
+    - rain_24h

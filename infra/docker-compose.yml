@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_BUNDLE_PATH=/backend/models/bundles/model_bundle
+      - DATA_DIR=/data
+    volumes:
+      - ./backend:/backend
+      - ./data:/data
+      - model-bundles:/backend/models/bundles
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - wildfire-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    command: npm run dev -- --host
+    networks:
+      - wildfire-net
+    depends_on:
+      - backend
+
+  duckdb:
+    image: alpine:latest
+    volumes:
+      - duckdb-data:/data
+    command: tail -f /dev/null
+    networks:
+      - wildfire-net
+
+networks:
+  wildfire-net:
+    driver: bridge
+
+volumes:
+  model-bundles:
+  duckdb-data:
