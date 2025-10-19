@@ -35,7 +35,7 @@ services:
   frontend:
     image: node:20
     working_dir: /app
-    command: bash -lc "npm install && npm run build && cp -r dist/* /app/dist_export/ && tail -f /dev/null"
+    command: bash -lc "npm install -g typescript && npm install && npm run build && cp -r dist/* /app/dist_export/ && tail -f /dev/null"
     volumes:
       - ./frontend:/app
       - frontend_dist:/app/dist_export
@@ -76,7 +76,7 @@ services:
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     depends_on:
       - backend
-      - nginx-exporter
+      - nginx
 
   grafana:
     image: grafana/grafana:10.4.5
