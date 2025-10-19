@@ -17,6 +17,10 @@ def _parse_bbox(raw: str) -> BoundingBox:
     if len(parts) != 4:
         raise ValueError("bbox must contain four comma-separated values")
     min_lon, min_lat, max_lon, max_lat = map(float, parts)
+    if max_lon <= min_lon:
+        raise ValueError("max_lon must be greater than min_lon")
+    if max_lat <= min_lat:
+        raise ValueError("max_lat must be greater than min_lat")
     return BoundingBox(min_lon=min_lon, min_lat=min_lat, max_lon=max_lon, max_lat=max_lat)
 
 

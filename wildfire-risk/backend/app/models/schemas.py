@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 
 class BoundingBox(BaseModel):
@@ -11,20 +11,6 @@ class BoundingBox(BaseModel):
     min_lat: float
     max_lon: float
     max_lat: float
-
-    @validator("max_lon")
-    def lon_range(cls, value: float, values: dict[str, float]) -> float:  # type: ignore[override]
-        min_lon = values.get("min_lon", -180.0)
-        if value <= min_lon:
-            raise ValueError("max_lon must be greater than min_lon")
-        return value
-
-    @validator("max_lat")
-    def lat_range(cls, value: float, values: dict[str, float]) -> float:  # type: ignore[override]
-        min_lat = values.get("min_lat", -90.0)
-        if value <= min_lat:
-            raise ValueError("max_lat must be greater than min_lat")
-        return value
 
 
 class RiskGridCell(BaseModel):
@@ -89,9 +75,11 @@ class ReasonCodeDelta(BaseModel):
     from_: float = Field(alias="from")
     to: float
     d_contribution: float
-
-    class Config:
-        allow_population_by_field_name = True
+    
+    # Pydantic v2 config
+    model_config = {
+        "populate_by_name": True,
+    }
 
 
 class CounterfactualResponse(BaseModel):
