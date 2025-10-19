@@ -24,7 +24,7 @@ services:
       MODEL_BUNDLE_PATH: /app/models/bundles/current
       DATABASE_URL: postgres://wildfire:wildfire@db:5432/wildfire
     volumes:
-      - ./backend/models/bundles/current:/app/models/bundles/current:ro
+      - ./backend/models/bundles/current:/app/models/bundles/current
       - ./data/sample:/data/sample:ro
     depends_on:
       db:
@@ -35,7 +35,7 @@ services:
   frontend:
     image: node:20
     working_dir: /app
-    command: bash -lc "npm install -g typescript && npm install && npm run build && cp -r dist/* /app/dist_export/ && tail -f /dev/null"
+    command: bash -lc "npm install && node node_modules/vite/bin/vite.js build && cp -r dist/* /app/dist_export/ && tail -f /dev/null"
     volumes:
       - ./frontend:/app
       - frontend_dist:/app/dist_export

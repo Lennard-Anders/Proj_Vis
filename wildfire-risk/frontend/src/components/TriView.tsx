@@ -7,6 +7,7 @@ import { useRisk, useScenario, useLoading } from "../state/selectors";
 import MapHeatmap from "./MapHeatmap";
 import MapLegend from "./MapLegend";
 import TimeScrubber from "./TimeScrubber";
+import WorldMap from "./WorldMap";
 
 const TriView: React.FC = () => {
   const risk = useRisk();
@@ -49,35 +50,41 @@ const TriView: React.FC = () => {
       <p>Selected date: {date}</p>
       {loading && <p>Loading synthetic tiles…</p>}
       {!loading && risk && (
-        <div className="tri-view">
-          <div className="tri-view__grid">
-            {risk.grid.slice(0, 6).map((cell: RiskGridCell) => (
-              <div key={`${cell.lat}-${cell.lon}`} className="tri-view__cell">
-                <span>
-                  {cell.lat.toFixed(2)}, {cell.lon.toFixed(2)}
-                </span>
-                <span>{(cell.prob * 100).toFixed(1)}%</span>
+        <>
+          <div className="maps-container">
+            <div className="tri-view">
+              <h3>Scenario Risk Map</h3>
+              <div className="tri-view__grid">
+                {risk.grid.slice(0, 6).map((cell: RiskGridCell) => (
+                  <div key={`${cell.lat}-${cell.lon}`} className="tri-view__cell">
+                    <span>
+                      {cell.lat.toFixed(2)}, {cell.lon.toFixed(2)}
+                    </span>
+                    <span>{(cell.prob * 100).toFixed(1)}%</span>
+                  </div>
+                ))}
               </div>
-            ))}
+              <div className="tri-view__deck">
+                <DeckGL
+                  style={{ width: "100%", height: "100%" }}
+                  layers={layers}
+                  initialViewState={INITIAL_VIEW_STATE}
+                  controller
+                  getTooltip={(info: PickingInfo<RiskGridCell>) => {
+                    const cell = (info && (info.object as RiskGridCell | null)) || undefined;
+                    if (!cell) {
+                      return null;
+                    }
+                    return `Risk ${(cell.prob * 100).toFixed(1)}% at ${cell.lat.toFixed(2)}, ${cell.lon.toFixed(2)}`;
+                  }}
+                />
+              </div>
+              <MapHeatmap data={risk} />
+              <MapLegend />
+            </div>
+            <WorldMap />
           </div>
-          <div className="tri-view__deck">
-            <DeckGL
-              style={{ width: "100%", height: "100%" }}
-              layers={layers}
-              initialViewState={INITIAL_VIEW_STATE}
-              controller
-              getTooltip={(info: PickingInfo<RiskGridCell>) => {
-                const cell = (info && (info.object as RiskGridCell | null)) || undefined;
-                if (!cell) {
-                  return null;
-                }
-                return `Risk ${(cell.prob * 100).toFixed(1)}% at ${cell.lat.toFixed(2)}, ${cell.lon.toFixed(2)}`;
-              }}
-            />
-          </div>
-          <MapHeatmap data={risk} />
-          <MapLegend />
-        </div>
+        </>
       )}
       <TimeScrubber date={date} onChange={setDate} />
     </div>

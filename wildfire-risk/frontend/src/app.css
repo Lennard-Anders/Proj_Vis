@@ -53,9 +53,35 @@ body {
   margin-top: 0;
 }
 
+.maps-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
 .tri-view {
   display: grid;
   gap: 0.75rem;
+}
+
+.world-map {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.world-map h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #17324f;
+}
+
+.world-map__container {
+  height: 400px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #1a1a2e;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .tri-view__grid {

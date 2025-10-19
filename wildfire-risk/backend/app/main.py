@@ -38,10 +38,8 @@ app.include_router(routes_counterfactual.router, prefix="/api")
 app.include_router(routes_frames.router, prefix="/api")
 app.include_router(routes_spread.router, prefix="/api")
 
-
-@app.on_event("startup")
-def startup() -> None:  # pragma: no cover - integration hook
-    Instrumentator().instrument(app).expose(app)
+# Add Prometheus instrumentation before app starts
+Instrumentator().instrument(app).expose(app)
 
 
 @app.get("/health")
