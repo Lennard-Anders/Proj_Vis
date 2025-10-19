@@ -3,6 +3,8 @@
   "include": ["src"],
   "compilerOptions": {
     "types": ["node", "vitest", "vite/client", "@testing-library/jest-dom"],
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+      "skipLibCheck": true,
+      // Add skipLibCheck to ignore type errors in node_modules
   }
 }
