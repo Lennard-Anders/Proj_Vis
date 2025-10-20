@@ -12,9 +12,12 @@ class Settings(BaseSettings):
     enable_cors: bool = True
     allowed_origins: List[str] = Field(default_factory=lambda: ["*"])
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        # Avoid warning about 'model_' protected namespace in BaseModel
+        "protected_namespaces": ("settings_",),
+    }
 
 
 @lru_cache(1)

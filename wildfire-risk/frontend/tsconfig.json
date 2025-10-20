@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.base.json",
-  "include": ["src"],
+  "include": ["src", "src/types"],
   "compilerOptions": {
     "types": ["node", "vitest", "vite/client", "@testing-library/jest-dom"],
     "jsx": "react-jsx"

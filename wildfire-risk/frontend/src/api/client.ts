@@ -13,13 +13,15 @@ const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
 const DEFAULT_BBOX = "-120.5,35.0,-120.0,35.5";
 const DEFAULT_POINT = { lat: 35.25, lon: -120.25 };
 
-export async function fetchRiskGrid(_: Record<string, number> | undefined = undefined): Promise<RiskResponse> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function fetchRiskGrid(_overrides: Record<string, number> | undefined = undefined): Promise<RiskResponse> {
   const params = { date: DEFAULT_DATE, bbox: DEFAULT_BBOX };
   const { data } = await api.get<RiskResponse>("/risk", { params });
   return data;
 }
 
-export async function fetchExplain(_: Record<string, number> | undefined = undefined): Promise<ExplainResponse> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function fetchExplain(_overrides: Record<string, number> | undefined = undefined): Promise<ExplainResponse> {
   const params = {
     date: DEFAULT_DATE,
     lat: DEFAULT_POINT.lat,

@@ -19,7 +19,7 @@ const TriView: React.FC = () => {
       return [];
     }
     return [
-      new ScatterplotLayer<RiskGridCell>({
+  new ScatterplotLayer({
         id: "risk-layer",
         data: risk.grid,
         getPosition: (cell: RiskGridCell) => [cell.lon, cell.lat],

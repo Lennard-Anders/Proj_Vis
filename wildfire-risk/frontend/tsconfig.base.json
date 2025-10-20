@@ -7,6 +7,12 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@deck.gl/react": ["src/shims/deck.gl/react"],
+      "@deck.gl/core": ["src/shims/deck.gl/core"],
+      "@deck.gl/layers": ["src/shims/deck.gl/layers"]
+    },
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,

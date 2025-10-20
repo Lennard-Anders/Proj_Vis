@@ -23,6 +23,9 @@ if LOGGING_CONFIG.exists():
 settings = get_settings()
 app = FastAPI(title=settings.app_name)
 
+# Register instrumentation middleware before startup to avoid runtime error
+instrumentator = Instrumentator().instrument(app)
+
 if settings.enable_cors:
     app.add_middleware(
         CORSMiddleware,
@@ -41,7 +44,7 @@ app.include_router(routes_spread.router, prefix="/api")
 
 @app.on_event("startup")
 def startup() -> None:  # pragma: no cover - integration hook
-    Instrumentator().instrument(app).expose(app)
+    instrumentator.expose(app)
 
 
 @app.get("/health")
