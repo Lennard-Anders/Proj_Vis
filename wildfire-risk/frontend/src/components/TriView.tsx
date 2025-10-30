@@ -8,20 +8,34 @@ import MapHeatmap from "./MapHeatmap";
 import MapLegend from "./MapLegend";
 import TimeScrubber from "./TimeScrubber";
 
+// ---------- Hilfstyp & Type Guard ----------
+type PickingInfoWith<T> = Omit<PickingInfo, "object"> & { object: T | null };
+
+function isRiskGridCell(o: unknown): o is RiskGridCell {
+  return (
+    !!o &&
+    typeof (o as any).lat === "number" &&
+    typeof (o as any).lon === "number" &&
+    typeof (o as any).prob === "number"
+  );
+}
+// -------------------------------------------
+
 const TriView: React.FC = () => {
   const risk = useRisk();
   const scenario = useScenario();
   const loading = useLoading();
-  const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState<string>(
+    new Date().toISOString().slice(0, 10)
+  );
 
   const layers = useMemo(() => {
-    if (!risk) {
-      return [];
-    }
+    if (!risk) return [];
+
     return [
-  new ScatterplotLayer({
+      new ScatterplotLayer({
         id: "risk-layer",
-        data: risk.grid,
+        data: risk.grid satisfies RiskGridCell[],
         getPosition: (cell: RiskGridCell) => [cell.lon, cell.lat],
         getRadius: 6000,
         radiusUnits: "meters",
@@ -36,7 +50,13 @@ const TriView: React.FC = () => {
   }, [risk]);
 
   const INITIAL_VIEW_STATE = useMemo(
-    () => ({ longitude: -120.25, latitude: 35.25, zoom: 5, pitch: 0, bearing: 0 }),
+    () => ({
+      longitude: -120.25,
+      latitude: 35.25,
+      zoom: 5,
+      pitch: 0,
+      bearing: 0,
+    }),
     []
   );
 
@@ -52,7 +72,10 @@ const TriView: React.FC = () => {
         <div className="tri-view">
           <div className="tri-view__grid">
             {risk.grid.slice(0, 6).map((cell: RiskGridCell) => (
-              <div key={`${cell.lat}-${cell.lon}`} className="tri-view__cell">
+              <div
+                key={`${cell.lat}-${cell.lon}`}
+                className="tri-view__cell"
+              >
                 <span>
                   {cell.lat.toFixed(2)}, {cell.lon.toFixed(2)}
                 </span>
@@ -60,21 +83,23 @@ const TriView: React.FC = () => {
               </div>
             ))}
           </div>
+
           <div className="tri-view__deck">
             <DeckGL
               style={{ width: "100%", height: "100%" }}
               layers={layers}
               initialViewState={INITIAL_VIEW_STATE}
               controller
-              getTooltip={(info: PickingInfo<RiskGridCell>) => {
-                const cell = (info && (info.object as RiskGridCell | null)) || undefined;
-                if (!cell) {
-                  return null;
-                }
-                return `Risk ${(cell.prob * 100).toFixed(1)}% at ${cell.lat.toFixed(2)}, ${cell.lon.toFixed(2)}`;
+              getTooltip={(info: PickingInfoWith<RiskGridCell>) => {
+                if (!isRiskGridCell(info.object)) return null;
+                const { prob, lat, lon } = info.object;
+                return `Risk ${(prob * 100).toFixed(1)}% at ${lat.toFixed(
+                  2
+                )}, ${lon.toFixed(2)}`;
               }}
             />
           </div>
+
           <MapHeatmap data={risk} />
           <MapLegend />
         </div>
