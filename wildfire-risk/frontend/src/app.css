@@ -77,11 +77,20 @@ body {
 }
 
 .world-map__container {
+  position: relative;
   height: 400px;
   border-radius: 8px;
   overflow: hidden;
   background: #1a1a2e;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.world-map__container canvas {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .tri-view__grid {
@@ -91,10 +100,19 @@ body {
 }
 
 .tri-view__deck {
+  position: relative;
   height: 320px;
   border-radius: 8px;
   overflow: hidden;
   background: #0f1c2a;
+}
+
+.tri-view__deck canvas {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .tri-view__cell {
