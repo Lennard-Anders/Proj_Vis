@@ -2,8 +2,6 @@ import React, { useMemo, useState } from "react";
 import DeckGL from "@deck.gl/react";
 import type { PickingInfo } from "@deck.gl/core";
 import { ScatterplotLayer } from "@deck.gl/layers";
-import { TileLayer } from "@deck.gl/geo-layers";
-import { BitmapLayer } from "@deck.gl/layers";
 import type { RiskGridCell } from "../api/types";
 import { useRisk, useScenario, useLoading } from "../state/selectors";
 import MapHeatmap from "./MapHeatmap";
@@ -12,49 +10,27 @@ import TimeScrubber from "./TimeScrubber";
 import WorldMap from "./WorldMap";
 
 const TriView: React.FC = () => {
-  // Updated: Nov 2 2025 - Added WorldMap with deck.gl TileLayer
   const risk = useRisk();
   const scenario = useScenario();
   const loading = useLoading();
   const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
 
   const layers = useMemo(() => {
-    const baseLayers: any[] = [
-      new TileLayer({
-        id: "base-map",
-        data: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-        minZoom: 0,
-        maxZoom: 19,
-        tileSize: 256,
-        renderSubLayers: (props: any) => {
-          const { boundingBox } = props.tile;
-          return new BitmapLayer(props, {
-            data: undefined,
-            image: props.data,
-            bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
-          });
-        },
-      }),
-    ];
-
     if (!risk) {
-      return baseLayers;
+      return [];
     }
-    
     return [
-      ...baseLayers,
       new ScatterplotLayer<RiskGridCell>({
         id: "risk-layer",
         data: risk.grid,
         getPosition: (cell: RiskGridCell) => [cell.lon, cell.lat],
-        getRadius: 8000,
+        getRadius: 6000,
         radiusUnits: "meters",
         getFillColor: (cell: RiskGridCell) => {
           const intensity = Math.min(255, Math.round(cell.prob * 255));
           const cooled = Math.max(0, 170 - Math.round(intensity / 2));
-          return [255, cooled, 0, 255];
+          return [255, cooled, 0, 200];
         },
-        opacity: 1.0,
         pickable: true,
       }),
     ];
@@ -67,7 +43,7 @@ const TriView: React.FC = () => {
 
   return (
     <div className="panel" aria-busy={loading}>
-      <h2>Scenario Maps - Build: {new Date().toISOString()}</h2>
+      <h2>Scenario Maps</h2>
       <p>
         Active scenario: <strong>{scenario}</strong>
       </p>
