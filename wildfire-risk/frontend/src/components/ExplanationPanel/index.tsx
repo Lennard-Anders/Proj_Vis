@@ -1,6 +1,6 @@
 import React from "react";
-import type { ExplainResponse } from "../api/types";
-import { useExplanation } from "../state/selectors";
+import type { ExplainResponse } from "../../api/types";
+import { useExplanation } from "../../state/selectors";
 
 const ExplanationPanel: React.FC = () => {
   const explanation = useExplanation();
