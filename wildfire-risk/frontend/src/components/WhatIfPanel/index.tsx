@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { runCounterfactual } from "../api/client";
-import { useTriViewState, TriViewState } from "../state/store";
+import { runCounterfactual } from "../../api/client";
+import { useTriViewState, TriViewState } from "../../state/store";
 
 const defaultOverrides = {
   wind_speed_10m: 10,

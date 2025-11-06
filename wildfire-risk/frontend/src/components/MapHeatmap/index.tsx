@@ -1,5 +1,5 @@
 import React from "react";
-import type { RiskResponse, RiskGridCell } from "../api/types";
+import type { RiskResponse, RiskGridCell } from "../../api/types";
 
 interface Props {
   data?: RiskResponse;
