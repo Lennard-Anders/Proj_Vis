@@ -1,6 +1,6 @@
 import React from "react";
-import type { FramesResponse } from "../api/types";
-import { useFrames } from "../state/selectors";
+import type { FramesResponse } from "../../api/types";
+import { useFrames } from "../../state/selectors";
 
 const EventExplorer: React.FC = () => {
   const frames = useFrames();

@@ -4,12 +4,12 @@ import type { PickingInfo } from "@deck.gl/core";
 import { ScatterplotLayer } from "@deck.gl/layers";
 import { TileLayer } from "@deck.gl/geo-layers";
 import { BitmapLayer } from "@deck.gl/layers";
-import type { RiskGridCell } from "../api/types";
-import { useRisk, useScenario, useLoading } from "../state/selectors";
-import MapHeatmap from "./MapHeatmap";
-import MapLegend from "./MapLegend";
-import TimeScrubber from "./TimeScrubber";
-import WorldMap from "./WorldMap";
+import type { RiskGridCell } from "../../api/types";
+import { useRisk, useScenario, useLoading } from "../../state/selectors";
+import MapHeatmap from "../MapHeatmap/MapHeatmap";
+import MapLegend from "../MapLegend/MapLegend";
+import TimeScrubber from "../TimeScrubber/TimeScrubber";
+import WorldMap from "../WorldMap/WorldMap";
 
 const TriView: React.FC = () => {
   // Updated: Nov 2 2025 - Added WorldMap with deck.gl TileLayer

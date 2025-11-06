@@ -1,5 +1,5 @@
 import React from "react";
-import { useRisk } from "../state/selectors";
+import { useRisk } from "../../state/selectors";
 
 const QualityBoard: React.FC = () => {
   const risk = useRisk();

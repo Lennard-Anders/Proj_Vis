@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import TriView from "./TriView";
+import TriView from ".";
 
 vi.mock("../state/selectors", () => ({
   useRisk: () => ({
