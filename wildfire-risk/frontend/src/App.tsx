@@ -1,9 +1,9 @@
 import React, { useEffect } from "react";
 import TriView from "./components/TriView";
 import WhatIfPanel from "./components/WhatIfPanel";
-import ExplanationPanel from "./components/ExplanationPanel/ExplanationPanel";
-import QualityBoard from "./components/QualityBoard/QualityBoard";
-import EventExplorer from "./components/EventExplorer/EventExplorer";
+import ExplanationPanel from "./components/ExplanationPanel";
+import QualityBoard from "./components/QualityBoard";
+import EventExplorer from "./components/EventExplorer";
 import { useTriViewState, TriViewState } from "./state/store";
 
 const App: React.FC = () => {
