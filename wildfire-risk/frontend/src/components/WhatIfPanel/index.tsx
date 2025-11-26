@@ -27,11 +27,17 @@ const WhatIfPanel: React.FC = () => {
 
   return (
     <div className="panel">
-      <h2>What-If Panel</h2>
+      <h2>What-If Analysis</h2>
+      <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-md)' }}>
+        Adjust environmental parameters to see potential risk changes
+      </p>
       <div className="what-if__controls">
   {(Object.entries(overrides) as Array<[string, number]>).map(([feature, value]) => (
           <label key={feature}>
-            {feature}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ textTransform: 'capitalize' }}>{feature.replace(/_/g, ' ')}</span>
+              <span>{value.toFixed(0)}</span>
+            </div>
             <input
               type="range"
               min={0}
@@ -41,14 +47,24 @@ const WhatIfPanel: React.FC = () => {
                 handleChange(feature, Number(event.target.value))
               }
             />
-            <span>{value.toFixed(0)}</span>
           </label>
         ))}
       </div>
       <button type="button" onClick={handleApply}>
-        Apply
+        🔥 Run Scenario
       </button>
-      {result && <p>{result}</p>}
+      {result && (
+        <div style={{
+          marginTop: 'var(--spacing-md)',
+          padding: 'var(--spacing-md)',
+          background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+          borderRadius: '8px',
+          border: '1px solid var(--success-green)',
+          color: 'var(--text-primary)'
+        }}>
+          <strong>✅ Result:</strong> {result}
+        </div>
+      )}
     </div>
   );
 };

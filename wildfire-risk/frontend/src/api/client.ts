@@ -4,6 +4,8 @@ import {
   ExplainResponse,
   FramesResponse,
   CounterfactualResponse,
+  FireHistoryResponse,
+  FireAnalysis,
 } from "./types";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -45,5 +47,44 @@ export async function runCounterfactual(
     overrides,
   };
   const { data } = await api.post<CounterfactualResponse>("/risk/counterfactual", payload);
+  return data;
+}
+
+export async function fetchFireHistory(
+  lat?: number,
+  lon?: number,
+  radiusKm?: number,
+  daysBack?: number,
+  startDate?: string,
+  endDate?: string
+): Promise<FireHistoryResponse> {
+  const params: any = {};
+  
+  // Use date range if provided, otherwise use days_back
+  if (startDate && endDate) {
+    params.start_date = startDate;
+    params.end_date = endDate;
+  } else {
+    params.days_back = daysBack || 1825;
+  }
+  
+  // Only add location params if provided (otherwise searches all Americas)
+  if (lat !== undefined && lon !== undefined) {
+    params.lat = lat;
+    params.lon = lon;
+    params.radius_km = radiusKm || 100;
+  }
+  const { data } = await api.get<FireHistoryResponse>("/gee/fire-history", { params });
+  return data;
+}
+
+export async function fetchFireAnalysis(
+  eventId: string,
+  lat: number,
+  lon: number,
+  date: string
+): Promise<FireAnalysis> {
+  const params = { lat, lon, date };
+  const { data } = await api.get<FireAnalysis>(`/gee/fire-analysis/${eventId}`, { params });
   return data;
 }

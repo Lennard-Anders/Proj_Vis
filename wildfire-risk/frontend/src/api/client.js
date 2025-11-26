@@ -33,3 +33,39 @@ export async function runCounterfactual(overrides) {
     const { data } = await api.post("/risk/counterfactual", payload);
     return data;
 }
+
+export async function fetchFireHistory(
+    lat,
+    lon,
+    radiusKm,
+    daysBack,
+    startDate,
+    endDate
+) {
+    const params = {};
+    
+    // Use either explicit dates or days_back
+    if (startDate && endDate) {
+        params.start_date = startDate;
+        params.end_date = endDate;
+    } else if (daysBack) {
+        params.days_back = daysBack;
+    } else {
+        params.days_back = 1825; // Default 5 years
+    }
+    
+    // Only add location params if provided (otherwise searches all Americas)
+    if (lat !== undefined && lon !== undefined) {
+        params.lat = lat;
+        params.lon = lon;
+        params.radius_km = radiusKm || 100;
+    }
+    const { data } = await api.get("/gee/fire-history", { params });
+    return data;
+}
+
+export async function fetchFireAnalysis(eventId, lat, lon, date) {
+    const params = { lat, lon, date };
+    const { data } = await api.get(`/gee/fire-analysis/${eventId}`, { params });
+    return data;
+}

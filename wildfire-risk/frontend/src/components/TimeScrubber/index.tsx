@@ -7,8 +7,15 @@ interface Props {
 
 const TimeScrubber: React.FC<Props> = ({ date, onChange }: Props) => (
   <div className="time-scrubber">
-    <label htmlFor="scrubber">
-      Date
+    <label htmlFor="scrubber" style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: 'var(--spacing-xs)',
+      fontSize: '0.9rem',
+      fontWeight: '600',
+      color: 'var(--text-primary)'
+    }}>
+      📅 Select Date
       <input
         id="scrubber"
         type="date"

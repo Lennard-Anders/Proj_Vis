@@ -13,6 +13,8 @@ from .api import (
     routes_frames,
     routes_risk,
     routes_spread,
+    routes_gee,
+    routes_fire_history,
 )
 from .core.config import get_settings
 
@@ -37,6 +39,8 @@ app.include_router(routes_explain.router, prefix="/api")
 app.include_router(routes_counterfactual.router, prefix="/api")
 app.include_router(routes_frames.router, prefix="/api")
 app.include_router(routes_spread.router, prefix="/api")
+app.include_router(routes_gee.router, prefix="/api")
+app.include_router(routes_fire_history.router, prefix="/api")
 
 # Add Prometheus instrumentation before app starts
 Instrumentator().instrument(app).expose(app)

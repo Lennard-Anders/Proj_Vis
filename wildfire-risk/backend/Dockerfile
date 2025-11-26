@@ -2,11 +2,15 @@ FROM python:3.11-slim AS base
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app ./app
-COPY models ./models
+COPY backend/app ./app
+COPY backend/models ./models
+
+# Copy ETL modules for GEE integration
+COPY etl/__init__.py ./etl/__init__.py
+COPY etl/gee_connector.py ./etl/gee_connector.py
 
 EXPOSE 8000
 

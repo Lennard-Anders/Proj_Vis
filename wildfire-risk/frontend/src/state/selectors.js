@@ -4,3 +4,10 @@ export const useExplanation = () => useTriViewState((state) => state.explanation
 export const useFrames = () => useTriViewState((state) => state.frames);
 export const useScenario = () => useTriViewState((state) => state.selectedScenario);
 export const useLoading = () => useTriViewState((state) => state.loading);
+export const useFireHistory = () => useTriViewState((state) => state.fireHistory);
+export const useSelectedFireEvent = () => useTriViewState((state) => state.selectedFireEvent);
+export const useFireAnalysis = () => useTriViewState((state) => state.fireAnalysis);
+export const useLoadFireHistory = () => useTriViewState((state) => state.loadFireHistory);
+export const useSelectFireEvent = () => useTriViewState((state) => state.selectFireEvent);
+export const useMapViewState = () => useTriViewState((state) => state.mapViewState);
+export const useSetMapViewState = () => useTriViewState((state) => state.setMapViewState);

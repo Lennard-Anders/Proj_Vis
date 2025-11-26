@@ -19,7 +19,8 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: .
+      dockerfile: ./backend/Dockerfile
     environment:
       MODEL_BUNDLE_PATH: /app/models/bundles/current
       DATABASE_URL: postgres://wildfire:wildfire@db:5432/wildfire

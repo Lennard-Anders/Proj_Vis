@@ -39,3 +39,53 @@ export interface CounterfactualResponse {
   reason_codes_delta: Array<{ feature: string; from: number; to: number; d_contribution: number }>;
   used: "surrogate" | "full";
 }
+
+export interface FireEvent {
+  event_id: string;
+  latitude: number;
+  longitude: number;
+  date: string;
+  fire_radiative_power: number;
+  confidence: number;
+  brightness_temp: number;
+  area_km2: number | null;
+}
+
+export interface FireHistoryResponse {
+  events: FireEvent[];
+  total_events: number;
+  period_start: string;
+  period_end: string;
+  region_center: { latitude: number; longitude: number };
+}
+
+export interface FireAnalysis {
+  event_id: string;
+  location: {
+    latitude: number;
+    longitude: number;
+    elevation_m: number;
+    slope_degrees: number;
+    aspect_degrees: number;
+  };
+  fire_data: {
+    date: string;
+    max_frp: number;
+    total_frp: number;
+  };
+  environmental_conditions: {
+    temperature_c: number;
+    humidity_percent: number;
+    wind_speed_ms: number;
+    precipitation_mm: number;
+    ndvi: number;
+    evi: number;
+  };
+  risk_factors: string[];
+  description: string;
+  analysis: {
+    severity: string;
+    terrain_risk: string;
+    weather_risk: string;
+  };
+}
