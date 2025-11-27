@@ -3,6 +3,7 @@ import DeckGL from "@deck.gl/react";
 import { TileLayer } from "@deck.gl/geo-layers";
 import { BitmapLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { useMapViewState, useSetMapViewState, useFireHistory, useSelectedFireEvent } from "../../state/selectors";
+import { useTriViewState, TriViewState } from "../../state/store";
 import type { FireEvent } from "../../api/types";
 
 const WorldMap: React.FC = () => {
@@ -10,6 +11,7 @@ const WorldMap: React.FC = () => {
   const setMapViewState = useSetMapViewState();
   const fireHistory = useFireHistory();
   const selectedFireEvent = useSelectedFireEvent();
+  const aiRiskGrid = useTriViewState((state: TriViewState) => state.aiRiskGrid);
   const [hoveredFire, setHoveredFire] = useState<FireEvent | null>(null);
   const [locationName, setLocationName] = useState<string>("");
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
@@ -61,7 +63,7 @@ const WorldMap: React.FC = () => {
   }, [hoveredFire]);
 
   const layers = useMemo(() => {
-    const baseLayers = [
+    const baseLayers: any[] = [
       new TileLayer({
         id: "world-base-map",
         data: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -70,7 +72,8 @@ const WorldMap: React.FC = () => {
         tileSize: 256,
         renderSubLayers: (props: any) => {
           const { boundingBox } = props.tile;
-          return new BitmapLayer(props, {
+          return new BitmapLayer({
+            ...props,
             data: undefined,
             image: props.data,
             bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
@@ -107,8 +110,29 @@ const WorldMap: React.FC = () => {
       baseLayers.push(fireLayer);
     }
 
+    // Add AI risk grid layer if available
+    if (aiRiskGrid && aiRiskGrid.grid_cells.length > 0) {
+      const riskGridLayer = new ScatterplotLayer({
+        id: 'ai-risk-grid',
+        data: aiRiskGrid.grid_cells,
+        getPosition: (d: any) => [d.longitude, d.latitude],
+        getRadius: 15000, // Size of each grid cell
+        getFillColor: (d: any) => {
+          // Parse the hex color from risk_color
+          const hex = d.risk_color.replace('#', '');
+          const r = parseInt(hex.substring(0, 2), 16);
+          const g = parseInt(hex.substring(2, 4), 16);
+          const b = parseInt(hex.substring(4, 6), 16);
+          return [r, g, b, 180]; // Semi-transparent
+        },
+        pickable: true,
+        opacity: 0.6,
+      });
+      baseLayers.push(riskGridLayer);
+    }
+
     return baseLayers;
-  }, [fireHistory, selectedFireEvent]);
+  }, [fireHistory, selectedFireEvent, aiRiskGrid]);
 
   return (
     <div className="panel">

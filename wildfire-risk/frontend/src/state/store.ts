@@ -1,7 +1,7 @@
 import create from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { fetchRiskGrid, fetchExplain, fetchFrames, fetchFireHistory, fetchFireAnalysis } from "../api/client";
-import type { RiskResponse, ExplainResponse, FramesResponse, FireHistoryResponse, FireEvent, FireAnalysis } from "../api/types";
+import { fetchRiskGrid, fetchExplain, fetchFrames, fetchFireHistory, fetchFireAnalysis, predictAIRisk, predictAIRiskGrid } from "../api/client";
+import type { RiskResponse, ExplainResponse, FramesResponse, FireHistoryResponse, FireEvent, FireAnalysis, AIRiskPrediction, AIRiskGridResponse } from "../api/types";
 
 export interface TriViewState {
   risk?: RiskResponse;
@@ -10,15 +10,23 @@ export interface TriViewState {
   fireHistory?: FireHistoryResponse;
   selectedFireEvent?: FireEvent;
   fireAnalysis?: FireAnalysis;
+  aiRiskPrediction?: AIRiskPrediction;
+  aiRiskGrid?: AIRiskGridResponse;
   selectedScenario: "observed" | "counterfactual" | "variant";
+  selectedDate: string;
+  bbox?: { min_lat: number; max_lat: number; min_lon: number; max_lon: number };
   loading: boolean;
   mapViewState: { longitude: number; latitude: number; zoom: number; pitch: number; bearing: number; transitionDuration?: number };
   initialize: () => Promise<void>;
   setScenario: (scenario: TriViewState["selectedScenario"]) => void;
   runWhatIf: (overrides: Record<string, number>) => Promise<void>;
+  runAIRiskPrediction: (params: { lat: number; lon: number; temperature: number; wind_speed_10m: number; rh: number; rain_24h?: number }) => Promise<void>;
+  runAIRiskGrid: (params: { lat: number; lon: number; temperature: number; wind_speed_10m: number; rh: number; rain_24h?: number; grid_size_deg?: number }) => Promise<void>;
   loadFireHistory: (lat?: number, lon?: number, radiusKm?: number, daysBack?: number, startDate?: string, endDate?: string) => Promise<void>;
   selectFireEvent: (event: FireEvent | undefined) => Promise<void>;
   setMapViewState: (viewState: Partial<TriViewState["mapViewState"]>) => void;
+  setDate: (date: string) => void;
+  setBbox: (bbox: { min_lat: number; max_lat: number; min_lon: number; max_lon: number } | undefined) => void;
 }
 
 type SetState = (
@@ -47,6 +55,7 @@ const storageFactory = () => {
 
 const creator = (set: SetState): TriViewState => ({
   selectedScenario: "observed",
+  selectedDate: new Date().toISOString().slice(0, 10),
   loading: false,
   mapViewState: {
     longitude: -100,
@@ -82,6 +91,47 @@ const creator = (set: SetState): TriViewState => ({
       set({ loading: false });
     }
   },
+  runAIRiskPrediction: async (params) => {
+    set({ loading: true });
+    try {
+      console.log('runAIRiskPrediction called with:', params);
+      const prediction = await predictAIRisk(
+        params.lat,
+        params.lon,
+        params.temperature,
+        params.wind_speed_10m,
+        params.rh,
+        params.rain_24h || 0
+      );
+      console.log('AI Risk Prediction received:', prediction);
+      set({ aiRiskPrediction: prediction });
+      console.log('AI Risk Prediction stored in state');
+    } catch (error) {
+      console.error('AI risk prediction failed:', error);
+    } finally {
+      set({ loading: false });
+    }
+  },
+  runAIRiskGrid: async (params) => {
+    set({ loading: true });
+    try {
+      const gridResult = await predictAIRiskGrid(
+        params.lat,
+        params.lon,
+        params.temperature,
+        params.wind_speed_10m,
+        params.rh,
+        params.rain_24h || 0,
+        params.grid_size_deg || 1.0,
+        20
+      );
+      set({ aiRiskGrid: gridResult });
+    } catch (error) {
+      console.error('AI risk grid prediction failed:', error);
+    } finally {
+      set({ loading: false });
+    }
+  },
   loadFireHistory: async (lat?: number, lon?: number, radiusKm?: number, daysBack?: number, startDate?: string, endDate?: string) => {
     try {
       const fireHistory = await fetchFireHistory(lat, lon, radiusKm, daysBack, startDate, endDate);
@@ -110,6 +160,12 @@ const creator = (set: SetState): TriViewState => ({
     set((state) => ({ 
       mapViewState: { ...state.mapViewState, ...viewState } 
     }));
+  },
+  setDate: (date: string) => {
+    set({ selectedDate: date });
+  },
+  setBbox: (bbox) => {
+    set({ bbox });
   },
 });
 

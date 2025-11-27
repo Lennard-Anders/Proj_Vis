@@ -89,3 +89,40 @@ export interface FireAnalysis {
     weather_risk: string;
   };
 }
+
+export interface AIRiskPrediction {
+  probability: number;
+  risk_level: string;
+  risk_color: string;
+  contributing_factors: Array<{
+    factor: string;
+    contribution: number;
+    impact: string;
+  }>;
+  recommendations: string[];
+  confidence: number;
+  features: {
+    temperature: number;
+    wind_speed: number;
+    humidity: number;
+    rainfall: number;
+    vegetation_dryness: number;
+    drought_index: number;
+  };
+}
+
+export interface RiskGridCell_AI {
+  latitude: number;
+  longitude: number;
+  probability: number;
+  risk_level: string;
+  risk_color: string;
+}
+
+export interface AIRiskGridResponse {
+  grid_cells: RiskGridCell_AI[];
+  center_lat: number;
+  center_lon: number;
+  grid_size_deg: number;
+  resolution: number;
+}

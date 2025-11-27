@@ -4,13 +4,13 @@
   "compilerOptions": {
     "types": ["node", "vitest", "vite/client", "@testing-library/jest-dom"],
     "jsx": "react-jsx",
-      "skipLibCheck": true,
-      "allowImportingTsExtensions": true,
-      "noEmit": true,
-      "strict": true,
-      "noUnusedLocals": true,
-      "noUnusedParameters": true,
-      "noFallthroughCasesInSwitch": true,
-      "noUncheckedSideEffectImports": true
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
   }
 }

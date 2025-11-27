@@ -6,6 +6,8 @@ import {
   CounterfactualResponse,
   FireHistoryResponse,
   FireAnalysis,
+  AIRiskPrediction,
+  AIRiskGridResponse,
 } from "./types";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -86,5 +88,52 @@ export async function fetchFireAnalysis(
 ): Promise<FireAnalysis> {
   const params = { lat, lon, date };
   const { data } = await api.get<FireAnalysis>(`/gee/fire-analysis/${eventId}`, { params });
+  return data;
+}
+
+export async function predictAIRisk(
+  latitude: number,
+  longitude: number,
+  temperature: number,
+  wind_speed_10m: number,
+  rh: number,
+  rain_24h: number = 0,
+  date?: string
+): Promise<AIRiskPrediction> {
+  const payload = {
+    latitude,
+    longitude,
+    temperature,
+    wind_speed_10m,
+    rh,
+    rain_24h,
+    date,
+    use_historical_context: true
+  };
+  const { data } = await api.post<AIRiskPrediction>("/ai-risk/predict", payload);
+  return data;
+}
+
+export async function predictAIRiskGrid(
+  center_lat: number,
+  center_lon: number,
+  temperature: number,
+  wind_speed_10m: number,
+  rh: number,
+  rain_24h: number = 0,
+  grid_size_deg: number = 1.0,
+  grid_resolution: number = 20
+): Promise<AIRiskGridResponse> {
+  const payload = {
+    center_lat,
+    center_lon,
+    grid_size_deg,
+    grid_resolution,
+    temperature,
+    wind_speed_10m,
+    rh,
+    rain_24h
+  };
+  const { data } = await api.post<AIRiskGridResponse>("/ai-risk/predict-grid", payload);
   return data;
 }

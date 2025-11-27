@@ -26,11 +26,11 @@ const App: React.FC = () => {
         </section>
         <aside className="app-main__center">
           <WhatIfPanel />
+          <ExplanationPanel />
+          <QualityBoard />
         </aside>
         <section className="app-main__right">
           <WorldMap />
-          <ExplanationPanel />
-          <QualityBoard />
           <EventExplorer />
         </section>
       </main>

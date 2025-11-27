@@ -1,25 +1,75 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import DeckGL from "@deck.gl/react";
 import type { PickingInfo } from "@deck.gl/core";
-import { ScatterplotLayer, IconLayer } from "@deck.gl/layers";
+import { ScatterplotLayer } from "@deck.gl/layers";
+import { HeatmapLayer, ScreenGridLayer } from "@deck.gl/aggregation-layers";
 import { TileLayer } from "@deck.gl/geo-layers";
 import { BitmapLayer } from "@deck.gl/layers";
 import type { RiskGridCell } from "../../api/types";
 import { useRisk, useScenario, useLoading, useSelectedFireEvent, useFireAnalysis } from "../../state/selectors";
+import { useTriViewState, TriViewState } from "../../state/store";
 import MapHeatmap from "../MapHeatmap";
 import MapLegend from "../MapLegend";
 import TimeScrubber from "../TimeScrubber";
-import WorldMap from "../WorldMap";
+
+interface TemperaturePoint {
+  latitude: number;
+  longitude: number;
+  temperature: number;
+}
+
+// Color scale for temperature (like weather maps) - blue to red gradient
+const TEMP_COLOR_RANGE = [
+  [0, 0, 255],      // -10°C: Deep blue
+  [0, 128, 255],    // 0°C: Light blue
+  [0, 255, 255],    // 10°C: Cyan
+  [0, 255, 128],    // 20°C: Cyan-green
+  [128, 255, 0],    // 25°C: Green-yellow
+  [255, 255, 0],    // 30°C: Yellow
+  [255, 200, 0],    // 35°C: Yellow-orange
+  [255, 128, 0],    // 40°C: Orange
+  [255, 64, 0],     // 45°C: Orange-red
+  [255, 0, 0],      // 50°C: Red
+];
 
 const TriView: React.FC = () => {
-  // Updated: Nov 2 2025 - Added WorldMap with deck.gl TileLayer
   const risk = useRisk();
   const scenario = useScenario();
   const loading = useLoading();
   const selectedFireEvent = useSelectedFireEvent();
   const fireAnalysis = useFireAnalysis();
-  const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [hoveredFire, setHoveredFire] = useState<any>(null);
+  const aiRiskGrid = useTriViewState((state: TriViewState) => state.aiRiskGrid);
+  const [date, setDate] = useState<string>("2013-01-01"); // Use date that exists in historical dataset
+  const [temperatureData, setTemperatureData] = useState<TemperaturePoint[]>([]);
+  const [showTempLayer, setShowTempLayer] = useState(false);
+
+  // Load temperature data - ALWAYS load, just control visibility
+  useEffect(() => {
+    const loadTemperatureData = async () => {
+      try {
+        console.log('Loading temperature data for date:', date);
+        const response = await fetch('http://localhost:8000/api/temperature/heatmap', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date,
+            region: 'global',
+            bbox: null
+          })
+        });
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Loaded temperature points:', result.count);
+          setTemperatureData(result.data || []);
+        } else {
+          console.error('Temperature API error:', response.status);
+        }
+      } catch (err) {
+        console.error('Failed to load temperature data:', err);
+      }
+    };
+    loadTemperatureData(); // Always load, visibility controlled by showTempLayer
+  }, [date]);
 
   const layers = useMemo(() => {
     const baseLayers: any[] = [
@@ -30,11 +80,16 @@ const TriView: React.FC = () => {
         maxZoom: 19,
         tileSize: 256,
         renderSubLayers: (props: any) => {
-          const { boundingBox } = props.tile;
+          if (!props.data) return null;
+          
+          const {
+            bbox: {west, south, east, north}
+          } = props.tile;
+          
           return new BitmapLayer(props, {
-            data: undefined,
+            data: null,
             image: props.data,
-            bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
+            bounds: [west, south, east, north]
           });
         },
       }),
@@ -59,6 +114,37 @@ const TriView: React.FC = () => {
       pickable: true,
     });
     
+    // Temperature heatmap layer - continuous weather-style gradient
+    const tempLayer = showTempLayer && temperatureData.length > 0 ? new HeatmapLayer({
+      id: 'temperature-weather-map',
+      data: temperatureData,
+      getPosition: (d: TemperaturePoint) => [d.longitude, d.latitude],
+      getWeight: (d: TemperaturePoint) => Math.max(0, d.temperature + 10), // Shift to positive
+      radiusPixels: 60,
+      intensity: 1.5,
+      threshold: 0.03,
+      colorRange: TEMP_COLOR_RANGE as any,
+      aggregation: 'MEAN',
+    }) : null;
+
+    // AI Risk Grid layer
+    const aiRiskLayer = aiRiskGrid && aiRiskGrid.grid_cells.length > 0 ? new ScatterplotLayer({
+      id: 'ai-risk-grid',
+      data: aiRiskGrid.grid_cells,
+      getPosition: (d: any) => [d.longitude, d.latitude],
+      getRadius: 12000,
+      radiusUnits: 'meters',
+      getFillColor: (d: any) => {
+        const hex = d.risk_color.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        return [r, g, b, 150];
+      },
+      pickable: true,
+      opacity: 0.7,
+    }) : null;
+    
     // Add fire event marker if one is selected
     const fireMarkerLayer = selectedFireEvent ? new ScatterplotLayer({
       id: "fire-marker",
@@ -72,19 +158,19 @@ const TriView: React.FC = () => {
       lineWidthUnits: "meters",
       pickable: true,
       stroked: true,
-      onHover: (info: any) => {
-        if (info.object) {
-          setHoveredFire(info.object);
-        }
+      onHover: (_info: any) => {
+        // Fire hover handling moved to WorldMap component
       },
     }) : null;
     
     return [
       ...baseLayers,
+      tempLayer,
       riskLayer,
+      aiRiskLayer,
       fireMarkerLayer,
     ].filter(Boolean);
-  }, [risk, selectedFireEvent]);
+  }, [risk, selectedFireEvent, showTempLayer, temperatureData, aiRiskGrid]);
 
   const INITIAL_VIEW_STATE = useMemo(
     () => ({ longitude: -120.25, latitude: 35.25, zoom: 5, pitch: 0, bearing: 0 }),
@@ -94,7 +180,23 @@ const TriView: React.FC = () => {
   return (
     <div className="panel" aria-busy={loading}>
       <div style={{ marginBottom: 'var(--spacing-md)' }}>
-        <h2>🗺️ Wildfire Risk Visualization</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2>🗺️ Wildfire Risk Visualization</h2>
+          <button 
+            onClick={() => setShowTempLayer(!showTempLayer)}
+            style={{
+              padding: '6px 12px',
+              fontSize: '0.85rem',
+              background: showTempLayer ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'var(--bg-secondary)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            {showTempLayer ? '🌡️ Hide Temp' : '🌡️ Show Temp'}
+          </button>
+        </div>
         <div style={{ 
           display: 'flex', 
           gap: 'var(--spacing-md)', 
@@ -137,7 +239,7 @@ const TriView: React.FC = () => {
               <DeckGL
                 style={{ width: "100%", height: "100%" }}
                 layers={layers}
-                initialViewState={INITIAL_VIEW_STATE}
+                initialViewState={INITIAL_VIEW_STATE as any}
                 controller
                 getTooltip={(info: PickingInfo<any>) => {
                   // Show fire analysis tooltip if hovering fire marker
@@ -198,8 +300,8 @@ const TriView: React.FC = () => {
                   }
                   
                   // Show risk cell tooltip
-                  const cell = (info && (info.object as RiskGridCell | null)) || undefined;
-                  if (!cell) {
+                  const cell = info?.object as RiskGridCell | null;
+                  if (!cell || !cell.lat || !cell.lon || cell.prob === undefined) {
                     return null;
                   }
                   return `Risk ${(cell.prob * 100).toFixed(1)}% at ${cell.lat.toFixed(2)}, ${cell.lon.toFixed(2)}`;
@@ -208,6 +310,97 @@ const TriView: React.FC = () => {
             </div>
             <MapHeatmap data={risk} />
             <MapLegend />
+          </div>
+
+          {/* Temperature Heatmap Visualization */}
+          <div className="tri-view" style={{ marginTop: 'var(--spacing-lg)' }}>
+            <h3>🌡️ Global Temperature Heatmap</h3>
+            <div className="tri-view__deck" style={{ height: '500px' }}>
+              <DeckGL
+                style={{ width: "100%", height: "100%" }}
+                layers={[
+                  new TileLayer({
+                    id: "temp-base-map",
+                    data: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    minZoom: 0,
+                    maxZoom: 19,
+                    tileSize: 256,
+                    renderSubLayers: (props: any) => {
+                      if (!props.data) return null;
+                      const {
+                        bbox: {west, south, east, north}
+                      } = props.tile;
+                      return new BitmapLayer(props, {
+                        data: null,
+                        image: props.data,
+                        bounds: [west, south, east, north]
+                      });
+                    },
+                  }),
+                  showTempLayer && temperatureData.length > 0 ? new HeatmapLayer({
+                    id: 'global-temperature-heatmap',
+                    data: temperatureData,
+                    getPosition: (d: TemperaturePoint) => [d.longitude, d.latitude],
+                    getWeight: (d: TemperaturePoint) => Math.max(0, d.temperature + 10),
+                    radiusPixels: 50,
+                    intensity: 2,
+                    threshold: 0.05,
+                    colorRange: TEMP_COLOR_RANGE as any,
+                    aggregation: 'MEAN',
+                  }) : null,
+                ].filter(Boolean)}
+                initialViewState={{
+                  longitude: 0,
+                  latitude: 20,
+                  zoom: 2,
+                  pitch: 0,
+                  bearing: 0
+                }}
+                controller
+                getTooltip={(info: PickingInfo<any>) => {
+                  const temp = info?.object as TemperaturePoint | null;
+                  if (!temp || temp.temperature === undefined) return null;
+                  return `Temperature: ${temp.temperature.toFixed(1)}°C`;
+                }}
+              />
+            </div>
+            <div style={{ 
+              marginTop: 'var(--spacing-md)', 
+              padding: 'var(--spacing-md)',
+              background: 'var(--bg-secondary)',
+              borderRadius: '8px'
+            }}>
+              <h4 style={{ marginBottom: 'var(--spacing-sm)', fontSize: '0.9rem' }}>
+                Temperature Scale (°C)
+              </h4>
+              <div style={{ 
+                display: 'flex', 
+                height: '30px', 
+                borderRadius: '4px',
+                overflow: 'hidden',
+                marginBottom: 'var(--spacing-sm)'
+              }}>
+                {TEMP_COLOR_RANGE.map((color, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      flex: 1,
+                      background: `rgb(${color[0]}, ${color[1]}, ${color[2]})`
+                    }}
+                  />
+                ))}
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between',
+                fontSize: '0.75rem',
+                color: 'var(--text-secondary)'
+              }}>
+                <span>-10°C (Blue)</span>
+                <span>20°C (Green)</span>
+                <span>50°C (Red)</span>
+              </div>
+            </div>
           </div>
         </>
       )}
