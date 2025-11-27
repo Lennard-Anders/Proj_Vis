@@ -33,3 +33,13 @@ lerna-debug.log*
 
 # Coverage
 coverage/
+
+# Ignore all CSV datasets
+data/Datasets/*.csv
+
+# Ignore temp files
+*.tmp
+
+# Ignore system files
+.DS_Store
+Thumbs.db
