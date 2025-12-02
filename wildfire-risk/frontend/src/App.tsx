@@ -5,6 +5,7 @@ import ExplanationPanel from "./components/ExplanationPanel";
 import QualityBoard from "./components/QualityBoard";
 import EventExplorer from "./components/EventExplorer";
 import WorldMap from "./components/WorldMap";
+import FireHistoryHistogram from "./components/FireHistoryHistogram";
 import { useTriViewState, TriViewState } from "./state/store";
 
 const App: React.FC = () => {
@@ -27,6 +28,7 @@ const App: React.FC = () => {
         <aside className="app-main__center">
           <WhatIfPanel />
           <ExplanationPanel />
+          <FireHistoryHistogram />
           <QualityBoard />
         </aside>
         <section className="app-main__right">
