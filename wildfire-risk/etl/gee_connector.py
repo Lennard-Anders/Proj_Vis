@@ -33,7 +33,7 @@ class GEEDataPipeline:
                 ee.Initialize(credentials, project=project)
             else:
                 # Use default credentials with configured project
-                ee.Initialize(project=project or 'data-visuaization-project')
+                ee.Initialize(project=project or 'data-visualization-project')
             logger.info(f"Google Earth Engine initialized successfully with project: {project or 'data-visuaization-project'}")
         except Exception as e:
             logger.error(f"Failed to initialize GEE: {e}")
