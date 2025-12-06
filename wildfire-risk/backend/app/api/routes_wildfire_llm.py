@@ -5,7 +5,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Query, HTTPException, status
 from pydantic import BaseModel, Field
 
-from ..services.llm_wildfire import estimate_wildfire_risk_llm
+from ..services.llm_wildfire import estimate_wildfire_risk_llm, list_local_llm_models
 
 
 class WildfireLlmResponse(BaseModel):
@@ -25,6 +25,9 @@ async def get_wildfire_risk_llm(
     rain_last_24h_mm: float = Query(
         ..., ge=0, description="Rainfall during the last 24 hours in mm"
     ),
+    model: str | None = Query(None, description="Optional model name"),
+    lat: float | None = Query(None, ge=-90, le=90, description="Latitude for location-aware prompt"),
+    lon: float | None = Query(None, ge=-180, le=180, description="Longitude for location-aware prompt"),
 ) -> Dict[str, Any]:
     """Estimate wildfire risk using the local LLM (Ollama).
 
@@ -39,6 +42,9 @@ async def get_wildfire_risk_llm(
             wind_speed_kmh=wind_speed_kmh,
             relative_humidity_percent=relative_humidity_percent,
             rain_last_24h_mm=rain_last_24h_mm,
+            model=model,
+            latitude=lat,
+            longitude=lon,
         )
     except Exception as exc:  # noqa: BLE001
         # Avoid leaking internal errors; surface as 502 to caller
@@ -48,3 +54,8 @@ async def get_wildfire_risk_llm(
         ) from exc
 
     return result
+
+
+@router.get("/models", response_model=list[str])
+async def list_wildfire_llm_models() -> list[str]:
+    return await list_local_llm_models()

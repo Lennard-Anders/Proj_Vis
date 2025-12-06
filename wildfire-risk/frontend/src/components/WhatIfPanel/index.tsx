@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { runCounterfactual, fetchWildfireRiskLLM } from "../../api/client";
+import React, { useEffect, useState } from "react";
+import { runCounterfactual, fetchWildfireRiskLLM, fetchWildfireModels } from "../../api/client";
 import { useTriViewState, TriViewState } from "../../state/store";
 
 const defaultOverrides = {
@@ -9,13 +9,26 @@ const defaultOverrides = {
   rain_24h: 1,
 };
 
+type LlmInputs = {
+  temperature: number;
+  wind_speed_kmh: number;
+  rh: number;
+  rain_24h: number;
+  lat?: number;
+  lon?: number;
+};
+
 const WhatIfPanel: React.FC = () => {
   const [overrides, setOverrides] = useState<Record<string, number>>(defaultOverrides);
   const [result, setResult] = useState<string>("");
   const [clickedLocation, setClickedLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [llmText, setLlmText] = useState<string>("");
   const [llmProbability, setLlmProbability] = useState<number | null>(null);
-  const [llmInputs, setLlmInputs] = useState<Record<string, number> | null>(null);
+  const [llmInputs, setLlmInputs] = useState<LlmInputs | null>(null);
+  const [manualLat, setManualLat] = useState<string>("");
+  const [manualLon, setManualLon] = useState<string>("");
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>("");
   
   const runWhatIf = useTriViewState((state: TriViewState) => state.runWhatIf);
   const runAIRiskPrediction = useTriViewState((state: TriViewState) => state.runAIRiskPrediction);
@@ -23,14 +36,33 @@ const WhatIfPanel: React.FC = () => {
   const mapViewState = useTriViewState((state: TriViewState) => state.mapViewState);
   const setWildfireLlmExplanation = useTriViewState((state: TriViewState) => state.setWildfireLlmExplanation);
 
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        const models = await fetchWildfireModels();
+        setAvailableModels(models);
+        if (models.length > 0) {
+          setSelectedModel((current) => current || models[0]);
+        }
+      } catch (err) {
+        console.warn("Unable to load LLM models", err);
+      }
+    };
+    loadModels();
+  }, []);
+
   const handleChange = (feature: string, value: number) => {
     setOverrides((prev: Record<string, number>) => ({ ...prev, [feature]: value }));
   };
 
   const handleApply = async () => {
-    // Use clicked location or center of map
-    const lat = clickedLocation?.lat || mapViewState.latitude;
-    const lon = clickedLocation?.lon || mapViewState.longitude;
+    // Use manual coords if provided, else clicked, else map center
+    const parsedLat = parseFloat(manualLat);
+    const parsedLon = parseFloat(manualLon);
+    const hasManualLat = Number.isFinite(parsedLat);
+    const hasManualLon = Number.isFinite(parsedLon);
+    const lat = hasManualLat ? parsedLat : (clickedLocation?.lat || mapViewState.latitude);
+    const lon = hasManualLon ? parsedLon : (clickedLocation?.lon || mapViewState.longitude);
     
     setResult("Running predictions...");
     setLlmText("");
@@ -38,7 +70,14 @@ const WhatIfPanel: React.FC = () => {
     setLlmInputs(null);
     
     try {
-      const snapshot = { ...overrides };
+      const snapshot: LlmInputs = {
+        temperature: overrides.temperature,
+        wind_speed_kmh: overrides.wind_speed_10m * 3.6,
+        rh: overrides.rh,
+        rain_24h: overrides.rain_24h,
+        lat,
+        lon,
+      };
       // Run both old and new prediction systems
       await runWhatIf(overrides);
       
@@ -75,6 +114,9 @@ const WhatIfPanel: React.FC = () => {
           wind_speed_kmh: windSpeedKmh,
           relative_humidity_percent: snapshot.rh,
           rain_last_24h_mm: snapshot.rain_24h,
+          model: selectedModel,
+          lat,
+          lon,
         });
         console.log("Wildfire LLM result:", llmData);
         setWildfireLlmExplanation?.(llmData);
@@ -90,7 +132,14 @@ const WhatIfPanel: React.FC = () => {
         });
         setLlmProbability(0);
         setLlmText("The AI explanation service returned an invalid response.");
-        setLlmInputs({ ...overrides, wind_speed_kmh: overrides.wind_speed_10m * 3.6 });
+        setLlmInputs({
+          temperature: overrides.temperature,
+          wind_speed_kmh: overrides.wind_speed_10m * 3.6,
+          rh: overrides.rh,
+          rain_24h: overrides.rain_24h,
+          lat,
+          lon,
+        });
         setResult("AI prediction complete, but LLM explanation failed.");
       }
       
@@ -142,6 +191,53 @@ const WhatIfPanel: React.FC = () => {
       )}
       
       <div className="what-if__controls">
+        <div style={{ marginBottom: 'var(--spacing-md)' }}>
+          <label style={{ fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>
+            LLM Model
+          </label>
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            style={{ width: '100%', padding: '6px', borderRadius: '4px' }}
+          >
+            {availableModels.length === 0 && <option value="">Loading models...</option>}
+            {availableModels.map((model) => (
+              <option key={model} value={model}>
+                {model}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: 'var(--spacing-md)' }}>
+          <div>
+            <label style={{ fontSize: '0.9rem' }}>
+              Latitude
+              <input
+                type="number"
+                step="0.0001"
+                placeholder={mapViewState.latitude.toFixed(4)}
+                value={manualLat}
+                onChange={(e) => setManualLat(e.target.value)}
+                style={{ width: '100%', marginTop: '4px' }}
+              />
+            </label>
+          </div>
+          <div>
+            <label style={{ fontSize: '0.9rem' }}>
+              Longitude
+              <input
+                type="number"
+                step="0.0001"
+                placeholder={mapViewState.longitude.toFixed(4)}
+                value={manualLon}
+                onChange={(e) => setManualLon(e.target.value)}
+                style={{ width: '100%', marginTop: '4px' }}
+              />
+            </label>
+          </div>
+        </div>
+
         {(Object.entries(overrides) as Array<[string, number]>).map(([feature, value]) => {
           const range = parameterRanges[feature] || { min: 0, max: 100, unit: '' };
           return (
@@ -204,7 +300,7 @@ const WhatIfPanel: React.FC = () => {
           )}
           {llmInputs && (
             <div style={{ marginTop: '10px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Inputs → Temp: {llmInputs.temperature?.toFixed(1)} °C, Wind: {llmInputs.wind_speed_kmh?.toFixed(1)} km/h, RH: {llmInputs.rh?.toFixed(1)}%, Rain: {llmInputs.rain_24h?.toFixed(1)} mm
+              Inputs → Temp: {llmInputs.temperature?.toFixed(1)} °C, Wind: {llmInputs.wind_speed_kmh?.toFixed(1)} km/h, RH: {llmInputs.rh?.toFixed(1)}%, Rain: {llmInputs.rain_24h?.toFixed(1)} mm, Lat: {llmInputs.lat?.toFixed(4)}, Lon: {llmInputs.lon?.toFixed(4)}
             </div>
           )}
         </div>

@@ -17,13 +17,17 @@ const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
 const DEFAULT_BBOX = "-120.5,35.0,-120.0,35.5";
 const DEFAULT_POINT = { lat: 35.25, lon: -120.25 };
 
-export async function fetchRiskGrid(_: Record<string, number> | undefined = undefined): Promise<RiskResponse> {
+export async function fetchRiskGrid(
+  _: Record<string, number> | undefined = undefined
+): Promise<RiskResponse> {
   const params = { date: DEFAULT_DATE, bbox: DEFAULT_BBOX };
   const { data } = await api.get<RiskResponse>("/risk", { params });
   return data;
 }
 
-export async function fetchExplain(_: Record<string, number> | undefined = undefined): Promise<ExplainResponse> {
+export async function fetchExplain(
+  _: Record<string, number> | undefined = undefined
+): Promise<ExplainResponse> {
   const params = {
     date: DEFAULT_DATE,
     lat: DEFAULT_POINT.lat,
@@ -60,8 +64,8 @@ export async function fetchFireHistory(
   startDate?: string,
   endDate?: string
 ): Promise<FireHistoryResponse> {
-  const params: any = {};
-  
+  const params: Record<string, number | string> = {};
+
   // Use date range if provided, otherwise use days_back
   if (startDate && endDate) {
     params.start_date = startDate;
@@ -69,7 +73,7 @@ export async function fetchFireHistory(
   } else {
     params.days_back = daysBack || 1825;
   }
-  
+
   // Only add location params if provided (otherwise searches all Americas)
   if (lat !== undefined && lon !== undefined) {
     params.lat = lat;
@@ -108,7 +112,7 @@ export async function predictAIRisk(
     rh,
     rain_24h,
     date,
-    use_historical_context: true
+    use_historical_context: true,
   };
   const { data } = await api.post<AIRiskPrediction>("/ai-risk/predict", payload);
   return data;
@@ -132,7 +136,7 @@ export async function predictAIRiskGrid(
     temperature,
     wind_speed_10m,
     rh,
-    rain_24h
+    rain_24h,
   };
   const { data } = await api.post<AIRiskGridResponse>("/ai-risk/predict-grid", payload);
   return data;
@@ -143,17 +147,29 @@ export async function fetchWildfireRiskLLM(params: {
   wind_speed_kmh: number;
   relative_humidity_percent: number;
   rain_last_24h_mm: number;
+  model?: string;
+  lat?: number;
+  lon?: number;
 }): Promise<{ wildfire_probability_percent: number; explanation: string }> {
-  const query = {
+  const query: Record<string, number | string> = {
     temperature_c: params.temperature_c,
     wind_speed_kmh: params.wind_speed_kmh,
     relative_humidity_percent: params.relative_humidity_percent,
     rain_last_24h_mm: params.rain_last_24h_mm,
   };
 
+  if (params.model) query.model = params.model;
+  if (typeof params.lat === "number") query.lat = params.lat;
+  if (typeof params.lon === "number") query.lon = params.lon;
+
   const { data } = await api.get<{
     wildfire_probability_percent: number;
     explanation: string;
   }>("/wildfire-llm/risk", { params: query });
+  return data;
+}
+
+export async function fetchWildfireModels(): Promise<string[]> {
+  const { data } = await api.get<string[]>("/wildfire-llm/models");
   return data;
 }

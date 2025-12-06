@@ -77,7 +77,15 @@ export async function fetchWildfireRiskLLM(params) {
         relative_humidity_percent: params.relative_humidity_percent,
         rain_last_24h_mm: params.rain_last_24h_mm,
     };
+    if (params.model) query.model = params.model;
+    if (typeof params.lat === "number") query.lat = params.lat;
+    if (typeof params.lon === "number") query.lon = params.lon;
 
     const { data } = await api.get("/wildfire-llm/risk", { params: query });
+    return data;
+}
+
+export async function fetchWildfireModels() {
+    const { data } = await api.get("/wildfire-llm/models");
     return data;
 }

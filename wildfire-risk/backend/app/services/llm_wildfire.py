@@ -17,6 +17,7 @@ OLLAMA_URL = (
     getattr(settings, "ollama_url", None)
     or "http://host.docker.internal:11434/api/generate"
 )
+OLLAMA_API_BASE = OLLAMA_URL.split("/api/")[0] + "/api"
 DEFAULT_MODEL = "llama3.2:latest"
 
 
@@ -41,12 +42,34 @@ async def call_local_llm(payload: Dict[str, Any]) -> str:
     return text
 
 
+async def list_local_llm_models() -> list[str]:
+    url = f"{OLLAMA_API_BASE}/tags"
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            data = response.json()
+    except (HTTPStatusError, RequestError) as exc:
+        logger.error("LLM models list failed: %s", exc)
+        return []
+    if isinstance(data, dict) and isinstance(data.get("models"), list):
+        names: list[str] = []
+        for item in data["models"]:
+            name = item.get("name") if isinstance(item, dict) else None
+            if isinstance(name, str):
+                names.append(name)
+        return names
+    return []
+
+
 async def estimate_wildfire_risk_llm(
     temperature_c: float,
     wind_speed_kmh: float,
     relative_humidity_percent: float,
     rain_last_24h_mm: float,
     model: str | None = None,
+    latitude: float | None = None,
+    longitude: float | None = None,
 ) -> Dict[str, Any]:
     """Use local LLM (Ollama) to estimate wildfire risk.
 
@@ -56,14 +79,14 @@ async def estimate_wildfire_risk_llm(
     """
 
     system_prompt = (
-        "You are an AI model that provides a rough assessment of the risk "
-        "of vegetation and forest fires based on environmental parameters. "
-        "You are NOT a real-time warning system and do not replace official fire warnings.\n\n"
-        "Your answer MUST be a single valid JSON object with the fields "
-        "\"wildfire_probability_percent\" (integer 0-100) and \"explanation\" (English text). "
-        "Do not use ellipsis (...) and do not include quotation marks inside the explanation text. "
-        "No additional text, no comments, nothing outside this JSON object."
+        "You are an AI model that provides a concise assessment of wildfire ignition risk. "
+        "Use weather plus factors like vegetation abundance/dryness, human presence, and lightning where relevant. "
+        "If a location is provided, tailor the explanation to it. "
+        "Your answer MUST be a single valid JSON object with fields \"wildfire_probability_percent\" (0-100 integer) and \"explanation\" (English). "
+        "Do not use ellipsis (...), avoid quotes inside the explanation text, and output nothing outside the JSON object."
     )
+
+    location_line = "Location not provided" if latitude is None or longitude is None else f"Location: lat {latitude:.4f}, lon {longitude:.4f}"
 
     user_prompt = f"""
 Estimate the relative risk of a vegetation or forest wildfire in percent based on the following parameters:
@@ -72,6 +95,9 @@ Estimate the relative risk of a vegetation or forest wildfire in percent based o
 - Wind speed: {wind_speed_kmh:.1f} km/h
 - Relative humidity (RH): {relative_humidity_percent:.1f} %
 - Rainfall during the last 24 hours: {rain_last_24h_mm:.1f} mm
+- {location_line}
+
+Guidance: be location-aware if coordinates are given; consider weather plus vegetation moisture/abundance, human presence, and lightning; avoid long prose.
 
 Return the result strictly as JSON in the following format:
 
