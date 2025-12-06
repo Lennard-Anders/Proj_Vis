@@ -13,11 +13,15 @@ const WhatIfPanel: React.FC = () => {
   const [overrides, setOverrides] = useState<Record<string, number>>(defaultOverrides);
   const [result, setResult] = useState<string>("");
   const [clickedLocation, setClickedLocation] = useState<{ lat: number; lon: number } | null>(null);
+  const [llmText, setLlmText] = useState<string>("");
+  const [llmProbability, setLlmProbability] = useState<number | null>(null);
+  const [llmInputs, setLlmInputs] = useState<Record<string, number> | null>(null);
   
   const runWhatIf = useTriViewState((state: TriViewState) => state.runWhatIf);
   const runAIRiskPrediction = useTriViewState((state: TriViewState) => state.runAIRiskPrediction);
   const runAIRiskGrid = useTriViewState((state: TriViewState) => state.runAIRiskGrid);
   const mapViewState = useTriViewState((state: TriViewState) => state.mapViewState);
+  const setWildfireLlmExplanation = useTriViewState((state: TriViewState) => state.setWildfireLlmExplanation);
 
   const handleChange = (feature: string, value: number) => {
     setOverrides((prev: Record<string, number>) => ({ ...prev, [feature]: value }));
@@ -29,8 +33,12 @@ const WhatIfPanel: React.FC = () => {
     const lon = clickedLocation?.lon || mapViewState.longitude;
     
     setResult("Running predictions...");
+    setLlmText("");
+    setLlmProbability(null);
+    setLlmInputs(null);
     
     try {
+      const snapshot = { ...overrides };
       // Run both old and new prediction systems
       await runWhatIf(overrides);
       
@@ -63,15 +71,26 @@ const WhatIfPanel: React.FC = () => {
       try {
         const windSpeedKmh = overrides.wind_speed_10m * 3.6; // convert m/s to km/h
         const llmData = await fetchWildfireRiskLLM({
-          temperature_c: overrides.temperature,
+          temperature_c: snapshot.temperature,
           wind_speed_kmh: windSpeedKmh,
-          relative_humidity_percent: overrides.rh,
-          rain_last_24h_mm: overrides.rain_24h,
+          relative_humidity_percent: snapshot.rh,
+          rain_last_24h_mm: snapshot.rain_24h,
         });
         console.log("Wildfire LLM result:", llmData);
+        setWildfireLlmExplanation?.(llmData);
+        setLlmProbability(llmData.wildfire_probability_percent);
+        setLlmText(llmData.explanation);
+        setLlmInputs({ ...snapshot, wind_speed_kmh: windSpeedKmh });
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown LLM error";
         console.error("Wildfire LLM request failed:", err);
+        setWildfireLlmExplanation?.({
+          wildfire_probability_percent: 0,
+          explanation: "The AI explanation service returned an invalid response.",
+        });
+        setLlmProbability(0);
+        setLlmText("The AI explanation service returned an invalid response.");
+        setLlmInputs({ ...overrides, wind_speed_kmh: overrides.wind_speed_10m * 3.6 });
         setResult("AI prediction complete, but LLM explanation failed.");
       }
       
@@ -162,6 +181,34 @@ const WhatIfPanel: React.FC = () => {
       >
         🔥 Calculate AI Risk Prediction
       </button>
+
+      {(llmText || llmProbability !== null) && (
+        <div style={{
+          marginTop: 'var(--spacing-md)',
+          padding: 'var(--spacing-md)',
+          background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
+          borderRadius: '8px',
+          border: '1px solid #6366f1',
+          color: 'var(--text-primary)'
+        }}>
+          <strong>🧠 LLM Assessment</strong>
+          {llmProbability !== null && (
+            <div style={{ marginTop: '6px', fontSize: '1rem', fontWeight: 700, color: '#4338ca' }}>
+              Probability: {llmProbability}%
+            </div>
+          )}
+          {llmText && (
+            <div style={{ marginTop: '8px', fontSize: '0.95rem', lineHeight: 1.5 }}>
+              {llmText}
+            </div>
+          )}
+          {llmInputs && (
+            <div style={{ marginTop: '10px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              Inputs → Temp: {llmInputs.temperature?.toFixed(1)} °C, Wind: {llmInputs.wind_speed_kmh?.toFixed(1)} km/h, RH: {llmInputs.rh?.toFixed(1)}%, Rain: {llmInputs.rain_24h?.toFixed(1)} mm
+            </div>
+          )}
+        </div>
+      )}
       
       {result && (
         <div style={{

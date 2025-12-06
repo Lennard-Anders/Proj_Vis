@@ -10,6 +10,7 @@ export interface TriViewState {
   fireHistory?: FireHistoryResponse;
   selectedFireEvent?: FireEvent;
   fireAnalysis?: FireAnalysis;
+  wildfireLlmExplanation?: { wildfire_probability_percent: number; explanation: string };
   aiRiskPrediction?: AIRiskPrediction;
   aiRiskGrid?: AIRiskGridResponse;
   selectedScenario: "observed" | "counterfactual" | "variant";
@@ -24,6 +25,7 @@ export interface TriViewState {
   runAIRiskGrid: (params: { lat: number; lon: number; temperature: number; wind_speed_10m: number; rh: number; rain_24h?: number; grid_size_deg?: number }) => Promise<void>;
   loadFireHistory: (lat?: number, lon?: number, radiusKm?: number, daysBack?: number, startDate?: string, endDate?: string) => Promise<void>;
   selectFireEvent: (event: FireEvent | undefined) => Promise<void>;
+  setWildfireLlmExplanation: (data: { wildfire_probability_percent: number; explanation: string } | undefined) => void;
   setMapViewState: (viewState: Partial<TriViewState["mapViewState"]>) => void;
   setDate: (date: string) => void;
   setBbox: (bbox: { min_lat: number; max_lat: number; min_lon: number; max_lon: number } | undefined) => void;
@@ -64,6 +66,7 @@ const creator = (set: SetState): TriViewState => ({
     pitch: 0,
     bearing: 0,
   },
+  wildfireLlmExplanation: undefined,
   initialize: async () => {
     set({ loading: true });
     try {
@@ -155,6 +158,9 @@ const creator = (set: SetState): TriViewState => ({
         console.error('Failed to fetch fire analysis:', error);
       }
     }
+  },
+  setWildfireLlmExplanation: (data) => {
+    set({ wildfireLlmExplanation: data });
   },
   setMapViewState: (viewState) => {
     set((state) => ({ 

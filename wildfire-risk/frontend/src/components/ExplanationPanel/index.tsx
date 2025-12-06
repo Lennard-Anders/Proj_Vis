@@ -6,15 +6,18 @@ import { useTriViewState, TriViewState } from "../../state/store";
 const ExplanationPanel: React.FC = () => {
   const explanation = useExplanation();
   const aiRiskPrediction = useTriViewState((state: TriViewState) => state.aiRiskPrediction);
+  const wildfireLlmExplanation = useTriViewState((state: TriViewState) => state.wildfireLlmExplanation);
 
   // DEBUG: Log what we have
   console.log('ExplanationPanel render:', { 
     hasAiPrediction: !!aiRiskPrediction, 
     hasExplanation: !!explanation,
-    aiRiskPrediction 
+    hasWildfireLlmExplanation: !!wildfireLlmExplanation,
+    aiRiskPrediction,
+    wildfireLlmExplanation,
   });
 
-  // Show AI prediction if available, otherwise fall back to traditional explanation
+  // Show AI prediction if available, otherwise fall back to LLM or traditional explanation
   if (aiRiskPrediction) {
     const { probability, risk_level, risk_color, contributing_factors, recommendations, confidence, features } = aiRiskPrediction;
     
@@ -151,6 +154,28 @@ const ExplanationPanel: React.FC = () => {
             ))}
           </ul>
         </div>
+      </div>
+    );
+  }
+
+  if (wildfireLlmExplanation) {
+    const { wildfire_probability_percent, explanation: llmText } = wildfireLlmExplanation;
+    return (
+      <div className="panel">
+        <h2>🧠 LLM Wildfire Assessment</h2>
+        <div style={{
+          padding: 'var(--spacing-md)',
+          background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+          borderRadius: '8px',
+          marginBottom: 'var(--spacing-md)',
+          border: '1px solid #3b82f6'
+        }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Estimated Wildfire Probability</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1d4ed8', marginTop: '4px' }}>
+            {wildfire_probability_percent}%
+          </div>
+        </div>
+        <p style={{ fontSize: '0.9rem', lineHeight: 1.5 }}>{llmText}</p>
       </div>
     );
   }

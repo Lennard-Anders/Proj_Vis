@@ -1,8 +1,10 @@
 import json
 import logging
 from typing import Any, Dict
+import re
 
 import httpx
+from httpx import HTTPStatusError, RequestError
 
 from ..core.config import get_settings
 
@@ -19,15 +21,24 @@ DEFAULT_MODEL = "llama3.2:latest"
 
 
 async def call_local_llm(payload: Dict[str, Any]) -> str:
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        response = await client.post(OLLAMA_URL, json=payload)
-        response.raise_for_status()
-        # Ollama /generate with stream=false returns JSON
-        data = response.json()
-        text = data.get("response", "")
-        if not isinstance(text, str):
-            text = str(text)
-        return text
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(OLLAMA_URL, json=payload)
+            response.raise_for_status()
+            data = response.json()
+    except (HTTPStatusError, RequestError) as exc:
+        logger.error("LLM request failed: %s", exc)
+        raise ValueError(f"LLM request failed: {exc}") from exc
+    except ValueError as exc:
+        logger.error("LLM response decode failed: %s", exc)
+        raise ValueError("LLM response decode failed") from exc
+
+    text = data.get("response", "")
+    if not isinstance(text, str):
+        text = str(text)
+    if not text.strip():
+        raise ValueError("LLM response is empty")
+    return text
 
 
 async def estimate_wildfire_risk_llm(
@@ -50,6 +61,7 @@ async def estimate_wildfire_risk_llm(
         "You are NOT a real-time warning system and do not replace official fire warnings.\n\n"
         "Your answer MUST be a single valid JSON object with the fields "
         "\"wildfire_probability_percent\" (integer 0-100) and \"explanation\" (English text). "
+        "Do not use ellipsis (...) and do not include quotation marks inside the explanation text. "
         "No additional text, no comments, nothing outside this JSON object."
     )
 
@@ -84,7 +96,15 @@ Requirements:
         "max_tokens": 300,
     }
 
-    raw_text = await call_local_llm(payload)
+    try:
+        raw_text = await call_local_llm(payload)
+    except ValueError as exc:
+        logger.error("LLM call failed: %s", exc)
+        return {
+            "wildfire_probability_percent": 0,
+            "explanation": "The AI explanation service is currently unavailable.",
+        }
+
     text = raw_text.strip()
 
     # Try to parse JSON directly, fall back to extracting and sanitizing JSON object
@@ -96,18 +116,44 @@ Requirements:
         if start != -1 and end != -1 and end > start:
             json_str = text[start : end + 1]
 
-            # Simple sanitization for common LLM issues (e.g. trailing ellipsis)
-            # Example: "..." at the end of explanation
-            json_str = json_str.replace("...\"", "\"")
+            # Broad sanitization: remove ellipsis, smart quotes, and control chars
+            json_str = json_str.replace("…", " ")
+            json_str = json_str.replace("...", " ")
+            json_str = json_str.replace("“", '"').replace("”", '"').replace("’", "'")
+            json_str = re.sub(r"[\u0000-\u001F]", " ", json_str)
 
+            # Attempt strict JSON parse first
             try:
                 data = json.loads(json_str)
             except json.JSONDecodeError:
-                logger.error("LLM JSON parse failed after sanitization: %s", json_str[:300])
-                return {
-                    "wildfire_probability_percent": 0,
-                    "explanation": "The AI explanation service returned an invalid response.",
+                # Regex-based tolerant extraction
+                prob_match = re.search(r'"wildfire_probability_percent"\s*:\s*([0-9]+(?:\.[0-9]+)?)(?:\s*%)?', json_str)
+                expl_match = re.search(r'"explanation"\s*:\s*"(.*)"', json_str, re.DOTALL)
+
+                if not expl_match:
+                    # fallback: capture after key even if quotes are broken
+                    expl_match = re.search(r'explanation\s*:\s*(.+)', json_str, re.DOTALL)
+
+                if prob_match:
+                    try:
+                        prob_val = float(prob_match.group(1))
+                    except ValueError:
+                        prob_val = 0.0
+                else:
+                    prob_val = 0.0
+
+                if expl_match:
+                    expl_val = expl_match.group(1)
+                    # strip trailing braces/commas/quotes
+                    expl_val = expl_val.strip().strip('"').strip("',}). ")
+                else:
+                    expl_val = "The AI explanation service returned an invalid response."
+
+                data = {
+                    "wildfire_probability_percent": prob_val,
+                    "explanation": expl_val.strip(),
                 }
+                logger.warning("LLM JSON recovered via tolerant parse: prob=%s text=%s", prob_val, expl_val[:200])
         else:
             logger.error("LLM response is not valid JSON: %s", text[:300])
             return {
