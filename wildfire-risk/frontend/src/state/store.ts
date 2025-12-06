@@ -1,6 +1,6 @@
 import create from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { fetchRiskGrid, fetchExplain, fetchFrames, fetchFireHistory, fetchFireAnalysis, predictAIRisk, predictAIRiskGrid } from "../api/client";
+import { fetchRiskGrid, fetchExplain, fetchFrames, fetchFireHistory, fetchFireAnalysis, predictAIRisk, predictAIRiskGrid, fetchWildfireRiskLLM } from "../api/client";
 import type { RiskResponse, ExplainResponse, FramesResponse, FireHistoryResponse, FireEvent, FireAnalysis, AIRiskPrediction, AIRiskGridResponse } from "../api/types";
 
 export interface TriViewState {

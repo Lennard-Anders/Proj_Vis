@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { runCounterfactual } from "../../api/client";
+import { runCounterfactual, fetchWildfireRiskLLM } from "../../api/client";
 import { useTriViewState, TriViewState } from "../../state/store";
 
 const defaultOverrides = {
@@ -57,6 +57,22 @@ const WhatIfPanel: React.FC = () => {
           rain_24h: overrides.rain_24h,
           grid_size_deg: 2.0
         });
+      }
+
+      // Call LLM-based wildfire risk estimation (UI-only for now)
+      try {
+        const windSpeedKmh = overrides.wind_speed_10m * 3.6; // convert m/s to km/h
+        const llmData = await fetchWildfireRiskLLM({
+          temperature_c: overrides.temperature,
+          wind_speed_kmh: windSpeedKmh,
+          relative_humidity_percent: overrides.rh,
+          rain_last_24h_mm: overrides.rain_24h,
+        });
+        console.log("Wildfire LLM result:", llmData);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown LLM error";
+        console.error("Wildfire LLM request failed:", err);
+        setResult("AI prediction complete, but LLM explanation failed.");
       }
       
       try {

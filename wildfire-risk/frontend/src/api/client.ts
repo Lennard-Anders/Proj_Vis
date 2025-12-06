@@ -137,3 +137,23 @@ export async function predictAIRiskGrid(
   const { data } = await api.post<AIRiskGridResponse>("/ai-risk/predict-grid", payload);
   return data;
 }
+
+export async function fetchWildfireRiskLLM(params: {
+  temperature_c: number;
+  wind_speed_kmh: number;
+  relative_humidity_percent: number;
+  rain_last_24h_mm: number;
+}): Promise<{ wildfire_probability_percent: number; explanation: string }> {
+  const query = {
+    temperature_c: params.temperature_c,
+    wind_speed_kmh: params.wind_speed_kmh,
+    relative_humidity_percent: params.relative_humidity_percent,
+    rain_last_24h_mm: params.rain_last_24h_mm,
+  };
+
+  const { data } = await api.get<{
+    wildfire_probability_percent: number;
+    explanation: string;
+  }>("/wildfire-llm/risk", { params: query });
+  return data;
+}

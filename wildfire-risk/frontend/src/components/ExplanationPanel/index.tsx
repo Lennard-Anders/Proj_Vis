@@ -182,6 +182,8 @@ const ExplanationPanel: React.FC = () => {
           {(explanation.probability * 100).toFixed(1)}%
         </div>
       </div>
+      {/* LLM block temporarily disabled until backend errors are resolved reliably */}
+
       <h3>📊 Feature Contributions</h3>
       <ul>
         {explanation.local_shap.map((item: ExplainResponse["local_shap"][number]) => (

@@ -69,3 +69,15 @@ export async function fetchFireAnalysis(eventId, lat, lon, date) {
     const { data } = await api.get(`/gee/fire-analysis/${eventId}`, { params });
     return data;
 }
+
+export async function fetchWildfireRiskLLM(params) {
+    const query = {
+        temperature_c: params.temperature_c,
+        wind_speed_kmh: params.wind_speed_kmh,
+        relative_humidity_percent: params.relative_humidity_percent,
+        rain_last_24h_mm: params.rain_last_24h_mm,
+    };
+
+    const { data } = await api.get("/wildfire-llm/risk", { params: query });
+    return data;
+}
