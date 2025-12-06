@@ -3,9 +3,9 @@ import { runCounterfactual, fetchWildfireRiskLLM, fetchWildfireModels } from "..
 import { useTriViewState, TriViewState } from "../../state/store";
 
 const defaultOverrides = {
-  temperature: 30,
+  temperature: 24,
   wind_speed_10m: 10,
-  rh: 25,
+  rh: 65,
   rain_24h: 1,
 };
 
