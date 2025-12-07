@@ -8,6 +8,7 @@ import {
   FireAnalysis,
   AIRiskPrediction,
   AIRiskGridResponse,
+  WildfireLlmResponse,
 } from "./types";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -150,7 +151,7 @@ export async function fetchWildfireRiskLLM(params: {
   model?: string;
   lat?: number;
   lon?: number;
-}): Promise<{ wildfire_probability_percent: number; explanation: string }> {
+}): Promise<WildfireLlmResponse> {
   const query: Record<string, number | string> = {
     temperature_c: params.temperature_c,
     wind_speed_kmh: params.wind_speed_kmh,
@@ -162,10 +163,7 @@ export async function fetchWildfireRiskLLM(params: {
   if (typeof params.lat === "number") query.lat = params.lat;
   if (typeof params.lon === "number") query.lon = params.lon;
 
-  const { data } = await api.get<{
-    wildfire_probability_percent: number;
-    explanation: string;
-  }>("/wildfire-llm/risk", { params: query });
+  const { data } = await api.get<WildfireLlmResponse>("/wildfire-llm/risk", { params: query });
   return data;
 }
 

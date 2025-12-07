@@ -25,6 +25,9 @@ const WhatIfPanel: React.FC = () => {
   const [llmText, setLlmText] = useState<string>("");
   const [llmProbability, setLlmProbability] = useState<number | null>(null);
   const [llmInputs, setLlmInputs] = useState<LlmInputs | null>(null);
+  const [llmLoading, setLlmLoading] = useState<boolean>(false);
+  const [featureContribs, setFeatureContribs] = useState<Array<{ feature: string; weight: number }>>([]);
+  const [featureInteractions, setFeatureInteractions] = useState<Array<{ pair: string; weight: number }>>([]);
   const [manualLat, setManualLat] = useState<string>("");
   const [manualLon, setManualLon] = useState<string>("");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
@@ -68,6 +71,9 @@ const WhatIfPanel: React.FC = () => {
     setLlmText("");
     setLlmProbability(null);
     setLlmInputs(null);
+    setFeatureContribs([]);
+    setFeatureInteractions([]);
+    setLlmLoading(true);
     
     try {
       const snapshot: LlmInputs = {
@@ -123,6 +129,8 @@ const WhatIfPanel: React.FC = () => {
         setLlmProbability(llmData.wildfire_probability_percent);
         setLlmText(llmData.explanation);
         setLlmInputs({ ...snapshot, wind_speed_kmh: windSpeedKmh });
+        setFeatureContribs(llmData.feature_contributions || []);
+        setFeatureInteractions(llmData.feature_interactions || []);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown LLM error";
         console.error("Wildfire LLM request failed:", err);
@@ -140,8 +148,11 @@ const WhatIfPanel: React.FC = () => {
           lat,
           lon,
         });
+        setFeatureContribs([]);
+        setFeatureInteractions([]);
         setResult("AI prediction complete, but LLM explanation failed.");
       }
+      setLlmLoading(false);
       
       try {
         await runCounterfactual(overrides);
@@ -180,7 +191,9 @@ const WhatIfPanel: React.FC = () => {
           borderRadius: '4px',
           fontSize: '0.85rem'
         }}>
-          📍 Location: {clickedLocation.lat.toFixed(3)}°, {clickedLocation.lon.toFixed(3)}°
+          <span>
+            Selected location: {clickedLocation.lat.toFixed(4)}, {clickedLocation.lon.toFixed(4)}
+          </span>
           <button 
             onClick={() => setClickedLocation(null)}
             style={{ marginLeft: '8px', fontSize: '0.75rem', padding: '2px 6px' }}
@@ -278,7 +291,7 @@ const WhatIfPanel: React.FC = () => {
         🔥 Calculate AI Risk Prediction
       </button>
 
-      {(llmText || llmProbability !== null) && (
+      {(llmLoading || llmText || llmProbability !== null) && (
         <div style={{
           marginTop: 'var(--spacing-md)',
           padding: 'var(--spacing-md)',
@@ -288,39 +301,67 @@ const WhatIfPanel: React.FC = () => {
           color: 'var(--text-primary)'
         }}>
           <strong>🧠 LLM Assessment</strong>
-          {llmProbability !== null && (
+          {llmLoading && (
+            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', color: '#4338ca' }}>
+              <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid #c7d2fe', borderTopColor: '#4338ca', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <span style={{ fontSize: '0.95rem' }}>Berechne Erklärung…</span>
+            </div>
+          )}
+
+          {!llmLoading && llmProbability !== null && (
             <div style={{ marginTop: '6px', fontSize: '1rem', fontWeight: 700, color: '#4338ca' }}>
               Probability: {llmProbability}%
             </div>
           )}
-          {llmText && (
+          {!llmLoading && llmText && (
             <div style={{ marginTop: '8px', fontSize: '0.95rem', lineHeight: 1.5 }}>
               {llmText}
             </div>
           )}
-          {llmInputs && (
+          {!llmLoading && llmInputs && (
             <div style={{ marginTop: '10px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
               Inputs → Temp: {llmInputs.temperature?.toFixed(1)} °C, Wind: {llmInputs.wind_speed_kmh?.toFixed(1)} km/h, RH: {llmInputs.rh?.toFixed(1)}%, Rain: {llmInputs.rain_24h?.toFixed(1)} mm, Lat: {llmInputs.lat?.toFixed(4)}, Lon: {llmInputs.lon?.toFixed(4)}
+            </div>
+          )}
+
+          {(featureContribs.length > 0 || featureInteractions.length > 0) && (
+            <div style={{ marginTop: '12px', display: 'grid', gap: '8px', fontSize: '0.9rem' }}>
+              {featureContribs.length > 0 && (
+                <div>
+                  <div style={{ fontWeight: 700, color: '#4338ca', marginBottom: '4px' }}>📊 Feature Contributions</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '4px', background: 'rgba(99,102,241,0.05)', padding: '8px', borderRadius: '6px' }}>
+                    {featureContribs.map((item) => (
+                      <React.Fragment key={item.feature}>
+                        <span style={{ textTransform: 'none' }}>{item.feature}</span>
+                        <span style={{ fontVariantNumeric: 'tabular-nums', color: item.weight >= 0 ? '#16a34a' : '#dc2626' }}>
+                          {item.weight.toFixed(2)}
+                        </span>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {featureInteractions.length > 0 && (
+                <div>
+                  <div style={{ fontWeight: 700, color: '#4338ca', marginBottom: '4px' }}>🔗 Feature Interactions</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '4px', background: 'rgba(99,102,241,0.05)', padding: '8px', borderRadius: '6px' }}>
+                    {featureInteractions.map((item) => (
+                      <React.Fragment key={item.pair}>
+                        <span style={{ textTransform: 'none' }}>{item.pair}</span>
+                        <span style={{ fontVariantNumeric: 'tabular-nums', color: item.weight >= 0 ? '#16a34a' : '#dc2626' }}>
+                          {item.weight.toFixed(2)}
+                        </span>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
       
-      {result && (
-        <div style={{
-          marginTop: 'var(--spacing-md)',
-          padding: 'var(--spacing-md)',
-          background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-          borderRadius: '8px',
-          border: '1px solid var(--success-green)',
-          color: 'var(--text-primary)'
-        }}>
-          <strong>✅ Result:</strong> {result}
-          <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#059669' }}>
-            View detailed analysis in the <strong>AI Explanation</strong> panel →
-          </div>
-        </div>
-      )}
     </div>
   );
 };

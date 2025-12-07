@@ -3,16 +3,30 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from fastapi import APIRouter, Query, HTTPException, status
+import logging
 from pydantic import BaseModel, Field
 
 from ..services.llm_wildfire import estimate_wildfire_risk_llm, list_local_llm_models
 
 
+class FeatureContribution(BaseModel):
+    feature: str
+    weight: float
+
+
+class FeatureInteraction(BaseModel):
+    pair: str
+    weight: float
+
+
 class WildfireLlmResponse(BaseModel):
     wildfire_probability_percent: int = Field(..., ge=0, le=100)
     explanation: str
+    feature_contributions: list[FeatureContribution] = Field(default_factory=list)
+    feature_interactions: list[FeatureInteraction] = Field(default_factory=list)
 
 router = APIRouter(prefix="/wildfire-llm", tags=["wildfire-llm"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/risk", response_model=WildfireLlmResponse)
@@ -46,14 +60,15 @@ async def get_wildfire_risk_llm(
             latitude=lat,
             longitude=lon,
         )
+        return result
     except Exception as exc:  # noqa: BLE001
-        # Avoid leaking internal errors; surface as 502 to caller
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Wildfire LLM service unavailable",
-        ) from exc
-
-    return result
+        logger.error("Wildfire LLM endpoint failed: %s", exc, exc_info=True)
+        return {
+            "wildfire_probability_percent": 0,
+            "explanation": f"LLM unavailable ({exc})",
+            "feature_contributions": [],
+            "feature_interactions": [],
+        }
 
 
 @router.get("/models", response_model=list[str])

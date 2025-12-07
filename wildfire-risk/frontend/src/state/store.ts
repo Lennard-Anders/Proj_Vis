@@ -1,7 +1,7 @@
 import create from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { fetchRiskGrid, fetchExplain, fetchFrames, fetchFireHistory, fetchFireAnalysis, predictAIRisk, predictAIRiskGrid, fetchWildfireRiskLLM } from "../api/client";
-import type { RiskResponse, ExplainResponse, FramesResponse, FireHistoryResponse, FireEvent, FireAnalysis, AIRiskPrediction, AIRiskGridResponse } from "../api/types";
+import type { RiskResponse, ExplainResponse, FramesResponse, FireHistoryResponse, FireEvent, FireAnalysis, AIRiskPrediction, AIRiskGridResponse, WildfireLlmResponse } from "../api/types";
 
 export interface TriViewState {
   risk?: RiskResponse;
@@ -10,7 +10,7 @@ export interface TriViewState {
   fireHistory?: FireHistoryResponse;
   selectedFireEvent?: FireEvent;
   fireAnalysis?: FireAnalysis;
-  wildfireLlmExplanation?: { wildfire_probability_percent: number; explanation: string };
+  wildfireLlmExplanation?: WildfireLlmResponse;
   aiRiskPrediction?: AIRiskPrediction;
   aiRiskGrid?: AIRiskGridResponse;
   selectedScenario: "observed" | "counterfactual" | "variant";
@@ -25,7 +25,7 @@ export interface TriViewState {
   runAIRiskGrid: (params: { lat: number; lon: number; temperature: number; wind_speed_10m: number; rh: number; rain_24h?: number; grid_size_deg?: number }) => Promise<void>;
   loadFireHistory: (lat?: number, lon?: number, radiusKm?: number, daysBack?: number, startDate?: string, endDate?: string) => Promise<void>;
   selectFireEvent: (event: FireEvent | undefined) => Promise<void>;
-  setWildfireLlmExplanation: (data: { wildfire_probability_percent: number; explanation: string } | undefined) => void;
+  setWildfireLlmExplanation: (data: WildfireLlmResponse | undefined) => void;
   setMapViewState: (viewState: Partial<TriViewState["mapViewState"]>) => void;
   setDate: (date: string) => void;
   setBbox: (bbox: { min_lat: number; max_lat: number; min_lon: number; max_lon: number } | undefined) => void;
