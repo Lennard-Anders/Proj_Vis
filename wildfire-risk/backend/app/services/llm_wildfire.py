@@ -19,7 +19,7 @@ OLLAMA_URL = (
     or "http://host.docker.internal:11434/api/generate"
 )
 OLLAMA_API_BASE = OLLAMA_URL.split("/api/")[0] + "/api"
-DEFAULT_MODEL = "llama3.2:latest"
+DEFAULT_MODEL = "mistral:latest"
 OLLAMA_SEED = getattr(settings, "ollama_seed", None)
 CACHE_TTL_SECONDS = 300  # 5 minutes
 PROMPT_VERSION = "v1"  # bump to invalidate cache when prompt changes
