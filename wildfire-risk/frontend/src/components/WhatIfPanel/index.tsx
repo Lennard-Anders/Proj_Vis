@@ -193,7 +193,7 @@ const WhatIfPanel: React.FC = () => {
       <div className="what-if__controls">
         <div style={{ marginBottom: 'var(--spacing-md)' }}>
           <label style={{ fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>
-            LLM Model
+            Prediction Model
           </label>
           <select
             value={selectedModel}

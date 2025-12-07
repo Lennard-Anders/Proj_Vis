@@ -2,6 +2,7 @@ import json
 import logging
 from typing import Any, Dict
 import re
+from time import monotonic
 
 import httpx
 from httpx import HTTPStatusError, RequestError
@@ -19,6 +20,12 @@ OLLAMA_URL = (
 )
 OLLAMA_API_BASE = OLLAMA_URL.split("/api/")[0] + "/api"
 DEFAULT_MODEL = "llama3.2:latest"
+OLLAMA_SEED = getattr(settings, "ollama_seed", None)
+CACHE_TTL_SECONDS = 300  # 5 minutes
+PROMPT_VERSION = "v1"  # bump to invalidate cache when prompt changes
+
+# Simple in-memory cache: key -> (expires_at, payload)
+_llm_cache: dict[tuple, tuple[float, Dict[str, Any]]] = {}
 
 
 async def call_local_llm(payload: Dict[str, Any]) -> str:
@@ -43,23 +50,54 @@ async def call_local_llm(payload: Dict[str, Any]) -> str:
 
 
 async def list_local_llm_models() -> list[str]:
-    url = f"{OLLAMA_API_BASE}/tags"
-    try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-            data = response.json()
-    except (HTTPStatusError, RequestError) as exc:
-        logger.error("LLM models list failed: %s", exc)
-        return []
-    if isinstance(data, dict) and isinstance(data.get("models"), list):
-        names: list[str] = []
-        for item in data["models"]:
-            name = item.get("name") if isinstance(item, dict) else None
-            if isinstance(name, str):
-                names.append(name)
-        return names
-    return []
+    # Start with user-provided endpoints (env/config), then fall back to common hosts.
+    configured = list(getattr(settings, "ollama_tag_endpoints", []) or [])
+
+    # If an explicit ollama_url is provided, also probe its /tags endpoint.
+    if getattr(settings, "ollama_url", None):
+        base = settings.ollama_url
+        if base.endswith("/api/generate"):
+            configured.insert(0, base.replace("/api/generate", "/api/tags"))
+        elif "/api" in base:
+            configured.insert(0, base.split("/api")[0].rstrip("/") + "/api/tags")
+        else:
+            configured.insert(0, base.rstrip("/") + "/api/tags")
+
+    fallback = [
+        f"{OLLAMA_API_BASE}/tags",  # host.docker.internal (default)
+        "http://localhost:11434/api/tags",  # local host
+        "http://host.docker.internal:11434/api/tags",  # host from container
+        "http://ollama:11434/api/tags",  # common docker service name
+    ]
+
+    seen_urls: set[str] = set()
+    tag_urls = []
+    for url in configured + fallback:
+        if url and url not in seen_urls:
+            seen_urls.add(url)
+            tag_urls.append(url)
+
+    seen_models: set[str] = set()
+    models: list[str] = []
+
+    for url in tag_urls:
+        try:
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                data = response.json()
+        except (HTTPStatusError, RequestError) as exc:
+            logger.warning("LLM models list failed for %s: %s", url, exc)
+            continue
+
+        if isinstance(data, dict) and isinstance(data.get("models"), list):
+            for item in data["models"]:
+                name = item.get("name") if isinstance(item, dict) else None
+                if isinstance(name, str) and name not in seen_models:
+                    seen_models.add(name)
+                    models.append(name)
+
+    return models
 
 
 async def estimate_wildfire_risk_llm(
@@ -112,15 +150,38 @@ Requirements:
 - Do not mention yourself as an AI, do not add disclaimers, only provide a factual explanation.
 """.strip()
 
+    def _round(value: float | None) -> float | None:
+        return None if value is None else round(value, 4)
+
+    cache_key = (
+        PROMPT_VERSION,
+        model or DEFAULT_MODEL,
+        _round(temperature_c),
+        _round(wind_speed_kmh),
+        _round(relative_humidity_percent),
+        _round(rain_last_24h_mm),
+        _round(latitude),
+        _round(longitude),
+        OLLAMA_SEED,
+    )
+
+    now = monotonic()
+    cached = _llm_cache.get(cache_key)
+    if cached and cached[0] > now:
+        return dict(cached[1])
+
     payload: Dict[str, Any] = {
         "model": model or DEFAULT_MODEL,
         "prompt": user_prompt,
         "system": system_prompt,
         "stream": False,
-        "temperature": 0.2,
-        "top_p": 0.9,
+        "temperature": 0.0,
+        "top_p": 1.0,
         "max_tokens": 300,
     }
+
+    if OLLAMA_SEED is not None:
+        payload["seed"] = OLLAMA_SEED
 
     try:
         raw_text = await call_local_llm(payload)
@@ -197,6 +258,14 @@ Requirements:
 
     prob = max(0, min(100, prob))
 
+    result = {
+        "wildfire_probability_percent": prob,
+        "explanation": explanation or "The AI explanation service returned an invalid response.",
+    }
+
+    _llm_cache[cache_key] = (now + CACHE_TTL_SECONDS, result)
+
+    return result
     return {
         "wildfire_probability_percent": prob,
         "explanation": explanation,

@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     model_bundle_path: str = Field(default="models/bundles/current")
     enable_cors: bool = True
     allowed_origins: list[str] = Field(default_factory=lambda: ["*"])
+    ollama_url: str | None = None
+    ollama_tag_endpoints: list[str] = Field(default_factory=list)
+    ollama_seed: int | None = 42
 
     class Config:
         env_file = ".env"
