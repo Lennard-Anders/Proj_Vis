@@ -122,161 +122,146 @@ const EventExplorer: React.FC = () => {
   };
 
   return (
-    <div className="panel event-explorer">
-      <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-        🔥 Wildfire History
-        <span 
-          className="status-indicator" 
-          style={{ backgroundColor: getStatusColor() }}
-          title={loading ? 'Loading...' : loadError ? 'Error' : fireHistory ? 'Loaded' : 'Not loaded'}
-        />
-        <button 
-          onClick={handleLoadClick}
-          disabled={loading}
-          style={{
-            padding: '4px 12px',
-            fontSize: '0.8rem',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            backgroundColor: loading ? '#ccc' : '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            marginLeft: 'auto'
-          }}
-        >
-          {loading ? 'Loading...' : '🔄'}
-        </button>
-      </h2>
-      
-      {/* Region selector */}
-      <div style={{ marginBottom: '12px' }}>
-        <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', fontWeight: '500' }}>
-          Region:
-        </label>
-        <select 
-          value={selectedRegion}
-          onChange={handleRegionChange}
-          style={{
-            width: '100%',
-            padding: '6px 8px',
-            fontSize: '0.9rem',
-            borderRadius: '4px',
-            border: '1px solid #ccc',
-            backgroundColor: 'white',
-            cursor: 'pointer'
-          }}
-        >
-          {Object.entries(regions).map(([key, region]) => (
-            <option key={key} value={key}>
-              {region.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      
-      {/* Time navigation */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', padding: '8px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
-        <button
-          onClick={handleGoBack5Years}
-          disabled={loading}
-          style={{
-            padding: '6px 12px',
-            fontSize: '0.85rem',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            backgroundColor: loading ? '#ccc' : '#64748b',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-          }}
-        >
-          ◀ -5 Yrs
-        </button>
-        
-        <div style={{ flex: 1, textAlign: 'center', fontWeight: 'bold', fontSize: '0.9rem', color: '#1a1f3a' }}>
-          {getYearRangeLabel()}
+    <div className="timeline-wrapper">
+      <div className="timeline-controls">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>
+            🔥 Wildfire History
+          </h3>
+          <span 
+            className="status-indicator" 
+            style={{ backgroundColor: getStatusColor() }}
+            title={loading ? 'Loading...' : loadError ? 'Error' : fireHistory ? 'Loaded' : 'Not loaded'}
+          />
         </div>
         
-        <button
-          onClick={handleGoForward5Years}
-          disabled={loading || yearsBack === 0}
-          style={{
-            padding: '6px 12px',
-            fontSize: '0.85rem',
-            cursor: (loading || yearsBack === 0) ? 'not-allowed' : 'pointer',
-            backgroundColor: (loading || yearsBack === 0) ? '#ccc' : '#64748b',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-          }}
-        >
-          +5 Yrs ▶
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <select 
+            value={selectedRegion}
+            onChange={handleRegionChange}
+            style={{
+              padding: '4px 8px',
+              fontSize: '0.85rem',
+              borderRadius: '4px',
+              border: '1px solid #ccc',
+              backgroundColor: 'white',
+              cursor: 'pointer'
+            }}
+          >
+            {Object.entries(regions).map(([key, region]) => (
+              <option key={key} value={key}>
+                {region.name}
+              </option>
+            ))}
+          </select>
+          
+          <button
+            onClick={handleGoBack5Years}
+            disabled={loading}
+            style={{
+              padding: '4px 8px',
+              fontSize: '0.85rem',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              backgroundColor: loading ? '#ccc' : '#64748b',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+            }}
+          >
+            ◀
+          </button>
+          
+          <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#1a1f3a', minWidth: '80px', textAlign: 'center' }}>
+            {getYearRangeLabel()}
+          </div>
+          
+          <button
+            onClick={handleGoForward5Years}
+            disabled={loading || yearsBack === 0}
+            style={{
+              padding: '4px 8px',
+              fontSize: '0.85rem',
+              cursor: (loading || yearsBack === 0) ? 'not-allowed' : 'pointer',
+              backgroundColor: (loading || yearsBack === 0) ? '#ccc' : '#64748b',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+            }}
+          >
+            ▶
+          </button>
+          
+          <button 
+            onClick={handleLoadClick}
+            disabled={loading}
+            style={{
+              padding: '4px 8px',
+              fontSize: '0.85rem',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              backgroundColor: loading ? '#ccc' : '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+            }}
+          >
+            🔄
+          </button>
+        </div>
       </div>
       
-      {loading && <p className="event-explorer__loading">Loading fires...</p>}
+      {loading && (
+        <div className="timeline-message">⏳ Loading fires...</div>
+      )}
       
       {loadError && (
-        <div className="event-explorer__error" style={{ color: '#ff3333', padding: '10px' }}>
+        <div className="timeline-message" style={{ color: '#ff3333' }}>
           ❌ Failed to load. Try again.
         </div>
       )}
       
       {!loading && !loadError && !fireHistory && (
-        <p className="event-explorer__empty">No data.</p>
+        <div className="timeline-message">No data loaded</div>
       )}
       
       {fireHistory && fireHistory.events.length === 0 && (
-        <div className="event-explorer__empty">
-          <p>✅ No fires found</p>
-          <small>{fireHistory.period_start} to {fireHistory.period_end}</small>
+        <div className="timeline-message">
+          ✅ No fires found ({fireHistory.period_start} to {fireHistory.period_end})
         </div>
       )}
       
       {fireHistory && fireHistory.events.length > 0 && (
         <>
-          <div className="event-explorer__header">
-            <p className="event-explorer__summary">
-              {fireHistory.total_events} fire{fireHistory.total_events !== 1 ? 's' : ''}
-              <br />
-              <small>{fireHistory.period_start} to {fireHistory.period_end}</small>
-            </p>
+          <div className="timeline-info">
+            <span className="timeline-count">{fireHistory.total_events} fire{fireHistory.total_events !== 1 ? 's' : ''}</span>
+            <span className="timeline-period">{fireHistory.period_start} → {fireHistory.period_end}</span>
           </div>
           
-          <div className="event-explorer__timeline">
-            {fireHistory.events.map((event) => {
-              const isSelected = selectedFireEvent?.event_id === event.event_id;
-              const severityColor = getSeverityColor(event.fire_radiative_power);
-              
-              return (
-                <div
-                  key={event.event_id}
-                  className={`event-explorer__event ${isSelected ? 'event-explorer__event--selected' : ''}`}
-                  onClick={() => handleEventClick(event)}
-                  style={{ borderLeftColor: severityColor }}
-                >
-                  <div className="event-explorer__event-icon" style={{ backgroundColor: severityColor }}>
-                    🔥
-                  </div>
-                  <div className="event-explorer__event-info">
-                    <div className="event-explorer__event-date">{formatDate(event.date)}</div>
-                    <div className="event-explorer__event-location">
-                      {event.latitude.toFixed(3)}°N, {event.longitude.toFixed(3)}°E
+          <div className="timeline-scroll">
+            <div className="timeline-track">
+              {fireHistory.events
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                .map((event) => {
+                  const isSelected = selectedFireEvent?.event_id === event.event_id;
+                  const frp = event.fire_radiative_power;
+                  const emoji = frp > 100 ? '🔴' : frp > 50 ? '🟠' : '🟡';
+                  
+                  return (
+                    <div
+                      key={event.event_id}
+                      className={`timeline-event ${isSelected ? 'timeline-event--selected' : ''}`}
+                      onClick={() => handleEventClick(event)}
+                      title={`${formatDate(event.date)}\n${event.latitude.toFixed(3)}°, ${event.longitude.toFixed(3)}°\nFRP: ${frp.toFixed(1)} MW\nConfidence: ${event.confidence}%`}
+                    >
+                      <div className="timeline-event-emoji">{emoji}</div>
+                      {isSelected && <div className="timeline-event-marker">📍</div>}
                     </div>
-                    <div className="event-explorer__event-meta">
-                      <span title="Fire Radiative Power">FRP: {event.fire_radiative_power.toFixed(1)} MW</span>
-                      <span title="Confidence">Conf: {event.confidence}%</span>
-                    </div>
-                  </div>
-                  {isSelected && (
-                    <div className="event-explorer__event-indicator">📍</div>
-                  )}
-                </div>
-              );
-            })}
+                  );
+                })}
+            </div>
           </div>
           
           {selectedFireEvent && (
-            <div className="event-explorer__hint">
+            <div className="timeline-hint">
               💡 <strong>Fire marked on map</strong> - Hover for details
             </div>
           )}
