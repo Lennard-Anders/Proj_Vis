@@ -18,6 +18,24 @@ interface TemperaturePoint {
   temperature: number;
 }
 
+interface WindPoint {
+  latitude: number;
+  longitude: number;
+  wind_speed: number;
+}
+
+interface HumidityPoint {
+  latitude: number;
+  longitude: number;
+  humidity: number;
+}
+
+interface RainPoint {
+  latitude: number;
+  longitude: number;
+  rain: number;
+}
+
 // Color scale for temperature (like weather maps) - blue to red gradient
 const TEMP_COLOR_RANGE = [
   [0, 0, 255],      // -10°C: Deep blue
@@ -32,6 +50,38 @@ const TEMP_COLOR_RANGE = [
   [255, 0, 0],      // 50°C: Red
 ];
 
+// Color scale for wind speed - light green to dark purple
+const WIND_COLOR_RANGE = [
+  [240, 255, 240],  // 0 m/s: Very light green
+  [144, 238, 144],  // 5 m/s: Light green
+  [60, 179, 113],   // 10 m/s: Medium green
+  [255, 215, 0],    // 15 m/s: Gold
+  [255, 140, 0],    // 20 m/s: Dark orange
+  [178, 34, 34],    // 25 m/s: Firebrick
+  [128, 0, 128],    // 30 m/s: Purple
+];
+
+// Color scale for humidity - brown (dry) to blue (humid)
+const HUMIDITY_COLOR_RANGE = [
+  [139, 69, 19],    // 0%: Dark brown (very dry)
+  [210, 180, 140],  // 20%: Tan
+  [240, 230, 140],  // 40%: Khaki
+  [173, 216, 230],  // 60%: Light blue
+  [135, 206, 250],  // 80%: Sky blue
+  [0, 191, 255],    // 100%: Deep sky blue
+];
+
+// Color scale for rain - white to dark blue
+const RAIN_COLOR_RANGE = [
+  [240, 248, 255],  // 0mm: Alice blue (very light)
+  [176, 224, 230],  // 5mm: Powder blue
+  [135, 206, 235],  // 10mm: Sky blue
+  [70, 130, 180],   // 20mm: Steel blue
+  [65, 105, 225],   // 30mm: Royal blue
+  [0, 0, 139],      // 40mm: Dark blue
+  [25, 25, 112],    // 50mm: Midnight blue
+];
+
 const TriView: React.FC = () => {
   const risk = useRisk();
   const scenario = useScenario();
@@ -41,7 +91,13 @@ const TriView: React.FC = () => {
   const aiRiskGrid = useTriViewState((state: TriViewState) => state.aiRiskGrid);
   const [date, setDate] = useState<string>("2013-01-01"); // Use date that exists in historical dataset
   const [temperatureData, setTemperatureData] = useState<TemperaturePoint[]>([]);
+  const [windData, setWindData] = useState<WindPoint[]>([]);
+  const [humidityData, setHumidityData] = useState<HumidityPoint[]>([]);
+  const [rainData, setRainData] = useState<RainPoint[]>([]);
   const [showTempLayer, setShowTempLayer] = useState(false);
+  const [showWindLayer, setShowWindLayer] = useState(false);
+  const [showHumidityLayer, setShowHumidityLayer] = useState(false);
+  const [showRainLayer, setShowRainLayer] = useState(false);
 
   // Load temperature data - ALWAYS load, just control visibility
   useEffect(() => {
@@ -69,6 +125,76 @@ const TriView: React.FC = () => {
       }
     };
     loadTemperatureData(); // Always load, visibility controlled by showTempLayer
+  }, [date]);
+
+  // Load weather data from GEE-powered API endpoints
+  useEffect(() => {
+    const loadWeatherData = async () => {
+      const requestBody = {
+        date,
+        region: 'global',
+        bbox: null
+      };
+
+      // Load wind data
+      try {
+        console.log('Loading wind data for date:', date);
+        const windResponse = await fetch('http://localhost:8000/api/weather/wind/heatmap', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        });
+        if (windResponse.ok) {
+          const result = await windResponse.json();
+          console.log('Loaded wind points:', result.count);
+          setWindData(result.data || []);
+        } else {
+          console.error('Wind API error:', windResponse.status);
+        }
+      } catch (err) {
+        console.error('Failed to load wind data:', err);
+      }
+
+      // Load humidity data
+      try {
+        console.log('Loading humidity data for date:', date);
+        const humidityResponse = await fetch('http://localhost:8000/api/weather/humidity/heatmap', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        });
+        if (humidityResponse.ok) {
+          const result = await humidityResponse.json();
+          console.log('Loaded humidity points:', result.count);
+          setHumidityData(result.data || []);
+        } else {
+          console.error('Humidity API error:', humidityResponse.status);
+        }
+      } catch (err) {
+        console.error('Failed to load humidity data:', err);
+      }
+
+      // Load rain data
+      try {
+        console.log('Loading rain data for date:', date);
+        const rainResponse = await fetch('http://localhost:8000/api/weather/rain/heatmap', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        });
+        if (rainResponse.ok) {
+          const result = await rainResponse.json();
+          console.log('Loaded rain points:', result.count);
+          setRainData(result.data || []);
+        } else {
+          console.error('Rain API error:', rainResponse.status);
+        }
+      } catch (err) {
+        console.error('Failed to load rain data:', err);
+      }
+    };
+
+    loadWeatherData();
   }, [date]);
 
   const layers = useMemo(() => {
@@ -127,6 +253,45 @@ const TriView: React.FC = () => {
       aggregation: 'MEAN',
     }) : null;
 
+    // Wind speed heatmap layer
+    const windLayer = showWindLayer && windData.length > 0 ? new HeatmapLayer({
+      id: 'wind-speed-map',
+      data: windData,
+      getPosition: (d: WindPoint) => [d.longitude, d.latitude],
+      getWeight: (d: WindPoint) => d.wind_speed,
+      radiusPixels: 60,
+      intensity: 1.5,
+      threshold: 0.03,
+      colorRange: WIND_COLOR_RANGE as any,
+      aggregation: 'MEAN',
+    }) : null;
+
+    // Humidity heatmap layer
+    const humidityLayer = showHumidityLayer && humidityData.length > 0 ? new HeatmapLayer({
+      id: 'humidity-map',
+      data: humidityData,
+      getPosition: (d: HumidityPoint) => [d.longitude, d.latitude],
+      getWeight: (d: HumidityPoint) => d.humidity,
+      radiusPixels: 60,
+      intensity: 1.5,
+      threshold: 0.03,
+      colorRange: HUMIDITY_COLOR_RANGE as any,
+      aggregation: 'MEAN',
+    }) : null;
+
+    // Rain heatmap layer
+    const rainLayer = showRainLayer && rainData.length > 0 ? new HeatmapLayer({
+      id: 'rain-map',
+      data: rainData,
+      getPosition: (d: RainPoint) => [d.longitude, d.latitude],
+      getWeight: (d: RainPoint) => d.rain,
+      radiusPixels: 60,
+      intensity: 1.5,
+      threshold: 0.03,
+      colorRange: RAIN_COLOR_RANGE as any,
+      aggregation: 'MEAN',
+    }) : null;
+
     // AI Risk Grid layer
     const aiRiskLayer = aiRiskGrid && aiRiskGrid.grid_cells.length > 0 ? new ScatterplotLayer({
       id: 'ai-risk-grid',
@@ -166,11 +331,14 @@ const TriView: React.FC = () => {
     return [
       ...baseLayers,
       tempLayer,
+      windLayer,
+      humidityLayer,
+      rainLayer,
       riskLayer,
       aiRiskLayer,
       fireMarkerLayer,
     ].filter(Boolean);
-  }, [risk, selectedFireEvent, showTempLayer, temperatureData, aiRiskGrid]);
+  }, [risk, selectedFireEvent, showTempLayer, showWindLayer, showHumidityLayer, showRainLayer, temperatureData, windData, humidityData, rainData, aiRiskGrid]);
 
   const INITIAL_VIEW_STATE = useMemo(
     () => ({ longitude: -120.25, latitude: 35.25, zoom: 5, pitch: 0, bearing: 0 }),
@@ -180,22 +348,74 @@ const TriView: React.FC = () => {
   return (
     <div className="panel" aria-busy={loading}>
       <div style={{ marginBottom: 'var(--spacing-md)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
           <h2>🗺️ Wildfire Risk Visualization</h2>
-          <button 
-            onClick={() => setShowTempLayer(!showTempLayer)}
-            style={{
-              padding: '6px 12px',
-              fontSize: '0.85rem',
-              background: showTempLayer ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'var(--bg-secondary)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            {showTempLayer ? '🌡️ Hide Temp' : '🌡️ Show Temp'}
-          </button>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button 
+              onClick={() => setShowTempLayer(!showTempLayer)}
+              style={{
+                padding: '6px 12px',
+                fontSize: '0.85rem',
+                background: showTempLayer ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'var(--bg-secondary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              title="Toggle temperature layer"
+            >
+              {showTempLayer ? '🌡️ Hide Temp' : '🌡️ Show Temp'}
+            </button>
+            <button 
+              onClick={() => setShowWindLayer(!showWindLayer)}
+              style={{
+                padding: '6px 12px',
+                fontSize: '0.85rem',
+                background: showWindLayer ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'var(--bg-secondary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              title="Toggle wind speed layer"
+            >
+              {showWindLayer ? '💨 Hide Wind' : '💨 Show Wind'}
+            </button>
+            <button 
+              onClick={() => setShowHumidityLayer(!showHumidityLayer)}
+              style={{
+                padding: '6px 12px',
+                fontSize: '0.85rem',
+                background: showHumidityLayer ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'var(--bg-secondary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              title="Toggle humidity layer"
+            >
+              {showHumidityLayer ? '💧 Hide Humidity' : '💧 Show Humidity'}
+            </button>
+            <button 
+              onClick={() => setShowRainLayer(!showRainLayer)}
+              style={{
+                padding: '6px 12px',
+                fontSize: '0.85rem',
+                background: showRainLayer ? 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)' : 'var(--bg-secondary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              title="Toggle rain layer"
+            >
+              {showRainLayer ? '🌧️ Hide Rain' : '🌧️ Show Rain'}
+            </button>
+          </div>
         </div>
         <div style={{ 
           display: 'flex', 
@@ -310,6 +530,162 @@ const TriView: React.FC = () => {
             </div>
             <MapHeatmap data={risk} />
             <MapLegend />
+            
+            {/* Weather Parameter Legends */}
+            {(showTempLayer || showWindLayer || showHumidityLayer || showRainLayer) && (
+              <div style={{ 
+                marginTop: 'var(--spacing-md)', 
+                padding: 'var(--spacing-md)',
+                background: 'var(--bg-secondary)',
+                borderRadius: '8px',
+                display: 'grid',
+                gap: 'var(--spacing-md)'
+              }}>
+                <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)' }}>
+                  🌍 Active Weather Layers
+                </h4>
+                
+                {showTempLayer && (
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                      🌡️ Temperature (°C)
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      height: '24px', 
+                      borderRadius: '4px',
+                      overflow: 'hidden',
+                      marginBottom: '4px'
+                    }}>
+                      {TEMP_COLOR_RANGE.map((color, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            flex: 1,
+                            background: `rgb(${color[0]}, ${color[1]}, ${color[2]})`
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      fontSize: '0.75rem',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      <span>-10°C</span>
+                      <span>20°C</span>
+                      <span>50°C</span>
+                    </div>
+                  </div>
+                )}
+
+                {showWindLayer && (
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                      💨 Wind Speed (m/s)
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      height: '24px', 
+                      borderRadius: '4px',
+                      overflow: 'hidden',
+                      marginBottom: '4px'
+                    }}>
+                      {WIND_COLOR_RANGE.map((color, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            flex: 1,
+                            background: `rgb(${color[0]}, ${color[1]}, ${color[2]})`
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      fontSize: '0.75rem',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      <span>0 m/s</span>
+                      <span>15 m/s</span>
+                      <span>30 m/s</span>
+                    </div>
+                  </div>
+                )}
+
+                {showHumidityLayer && (
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                      💧 Relative Humidity (%)
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      height: '24px', 
+                      borderRadius: '4px',
+                      overflow: 'hidden',
+                      marginBottom: '4px'
+                    }}>
+                      {HUMIDITY_COLOR_RANGE.map((color, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            flex: 1,
+                            background: `rgb(${color[0]}, ${color[1]}, ${color[2]})`
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      fontSize: '0.75rem',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      <span>0%</span>
+                      <span>50%</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+                )}
+
+                {showRainLayer && (
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                      🌧️ Precipitation (mm/24h)
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      height: '24px', 
+                      borderRadius: '4px',
+                      overflow: 'hidden',
+                      marginBottom: '4px'
+                    }}>
+                      {RAIN_COLOR_RANGE.map((color, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            flex: 1,
+                            background: `rgb(${color[0]}, ${color[1]}, ${color[2]})`
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      fontSize: '0.75rem',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      <span>0 mm</span>
+                      <span>25 mm</span>
+                      <span>50 mm</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Temperature Heatmap Visualization */}

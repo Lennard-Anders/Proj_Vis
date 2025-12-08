@@ -16,6 +16,7 @@ from .api import (
     routes_gee,
     routes_fire_history,
     routes_temperature,
+    routes_weather,
     routes_ai_risk,
     routes_wildfire_llm,
     routes_ai_chat,
@@ -46,6 +47,7 @@ app.include_router(routes_spread.router, prefix="/api")
 app.include_router(routes_gee.router, prefix="/api")
 app.include_router(routes_fire_history.router, prefix="/api")
 app.include_router(routes_temperature.router, prefix="/api")
+app.include_router(routes_weather.router, prefix="/api")
 app.include_router(routes_ai_risk.router, prefix="/api")
 app.include_router(routes_wildfire_llm.router, prefix="/api")
 app.include_router(routes_ai_chat.router, prefix="/api")
