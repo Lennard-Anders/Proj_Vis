@@ -42,6 +42,7 @@ async def get_wildfire_risk_llm(
     model: str | None = Query(None, description="Optional model name"),
     lat: float | None = Query(None, ge=-90, le=90, description="Latitude for location-aware prompt"),
     lon: float | None = Query(None, ge=-180, le=180, description="Longitude for location-aware prompt"),
+    date: str | None = Query(None, description="Optional ISO date for contextual prompt"),
 ) -> Dict[str, Any]:
     """Estimate wildfire risk using the local LLM (Ollama).
 
@@ -59,6 +60,7 @@ async def get_wildfire_risk_llm(
             model=model,
             latitude=lat,
             longitude=lon,
+            date_str=date,
         )
         return result
     except Exception as exc:  # noqa: BLE001

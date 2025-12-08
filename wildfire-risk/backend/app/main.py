@@ -18,6 +18,7 @@ from .api import (
     routes_temperature,
     routes_ai_risk,
     routes_wildfire_llm,
+    routes_ai_chat,
 )
 from .core.config import get_settings
 
@@ -47,6 +48,7 @@ app.include_router(routes_fire_history.router, prefix="/api")
 app.include_router(routes_temperature.router, prefix="/api")
 app.include_router(routes_ai_risk.router, prefix="/api")
 app.include_router(routes_wildfire_llm.router, prefix="/api")
+app.include_router(routes_ai_chat.router, prefix="/api")
 
 # Add Prometheus instrumentation before app starts
 Instrumentator().instrument(app).expose(app)
