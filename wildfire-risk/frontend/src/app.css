@@ -2,9 +2,9 @@
   /* Modern Color Palette */
   --primary-bg: #0a0e27;
   --secondary-bg: #1a1f3a;
-  --accent-orange: #ff6b35;
-  --accent-red: #ff3838;
-  --accent-yellow: #ffb627;
+  --accent-orange: #06b6d4;
+  --accent-red: #0e7490;
+  --accent-yellow: #67e8f9;
   --card-bg: #ffffff;
   --card-shadow: rgba(0, 0, 0, 0.08);
   --text-primary: #1a1f3a;
@@ -54,6 +54,7 @@ body {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   position: relative;
   overflow: hidden;
+   text-align: center;
 }
 
 .app-header::before {
