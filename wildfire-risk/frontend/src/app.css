@@ -477,7 +477,7 @@ button {
 
 button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(255, 107, 53, 0.4);
+  box-shadow: 0 10px 20px -3px rgba(6, 182, 212, 0.55);
 }
 
 button:active {

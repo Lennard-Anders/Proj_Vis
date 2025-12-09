@@ -283,7 +283,7 @@ const WhatIfPanel: React.FC = () => {
         onClick={handleApply}
         style={{
           width: '100%',
-          background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+          background: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)',
           fontSize: '1rem',
           fontWeight: 'bold'
         }}
