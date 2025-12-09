@@ -21,7 +21,6 @@ type LlmInputs = {
 const WhatIfPanel: React.FC = () => {
   const [overrides, setOverrides] = useState<Record<string, number>>(defaultOverrides);
   const [result, setResult] = useState<string>("");
-  const [clickedLocation, setClickedLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [llmText, setLlmText] = useState<string>("");
   const [llmProbability, setLlmProbability] = useState<number | null>(null);
   const [llmInputs, setLlmInputs] = useState<LlmInputs | null>(null);
@@ -37,7 +36,16 @@ const WhatIfPanel: React.FC = () => {
   const runAIRiskPrediction = useTriViewState((state: TriViewState) => state.runAIRiskPrediction);
   const runAIRiskGrid = useTriViewState((state: TriViewState) => state.runAIRiskGrid);
   const mapViewState = useTriViewState((state: TriViewState) => state.mapViewState);
+  const clickedLocation = useTriViewState((state: TriViewState) => state.clickedLocation);
   const setWildfireLlmExplanation = useTriViewState((state: TriViewState) => state.setWildfireLlmExplanation);
+
+  // Autofill manual lat/lon fields when user clicks on map
+  useEffect(() => {
+    if (clickedLocation) {
+      setManualLat(clickedLocation.lat.toFixed(4));
+      setManualLon(clickedLocation.lon.toFixed(4));
+    }
+  }, [clickedLocation]);
 
   useEffect(() => {
     const loadModels = async () => {
