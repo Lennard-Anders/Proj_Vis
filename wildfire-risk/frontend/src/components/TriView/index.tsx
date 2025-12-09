@@ -234,7 +234,7 @@ const TriView: React.FC = () => {
       getFillColor: (cell: RiskGridCell) => {
         const intensity = Math.min(255, Math.round(cell.prob * 255));
         const cooled = Math.max(0, 170 - Math.round(intensity / 2));
-        return [255, cooled, 0, 255];
+        return [220, 50, 50, 220];
       },
       opacity: 1.0,
       pickable: true,
