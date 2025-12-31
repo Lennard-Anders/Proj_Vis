@@ -53,7 +53,6 @@ const App: React.FC = () => {
             <>
               <WhatIfPanel />
               <ExplanationPanel />
-              <FireHistoryHistogram />
               <QualityBoard />
             </>
           )}
@@ -62,7 +61,18 @@ const App: React.FC = () => {
           <TriView />
         </aside>
         <section className="app-main__right">
-          <WorldMap />
+          <div className="fire-history-card panel">
+            <div className="fire-history-card__header">
+              <h2>Fire History</h2>
+              <p>Explore historical wildfire data and trends.</p>
+            </div>
+            <div className="fire-history-card__body">
+              <WorldMap />
+              <FireHistoryHistogram />
+            </div>
+          </div>
+        </section>
+        <section className="app-main__bottom">
         </section>
       </main>
     </div>
