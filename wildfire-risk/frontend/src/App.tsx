@@ -22,6 +22,9 @@ const App: React.FC = () => {
         <h1>Wildfire Risk Explorer</h1>
         <p>Synthetic tri-view for wildfire risk scenarios.</p>
       </header>
+      <section className="app-timeline-section">
+        <EventExplorer />
+      </section>
       <main className={`app-main ${isLeftVisible ? "" : "app-main--left-hidden"}`}>
         <section className={`app-main__left ${isLeftVisible ? "" : "is-collapsed"}`}>
           <div className="left-toggle-container">
@@ -50,7 +53,6 @@ const App: React.FC = () => {
             <>
               <WhatIfPanel />
               <ExplanationPanel />
-              <FireHistoryHistogram />
               <QualityBoard />
             </>
           )}
@@ -59,8 +61,18 @@ const App: React.FC = () => {
           <TriView />
         </aside>
         <section className="app-main__right">
-          <WorldMap />
-          <EventExplorer />
+          <div className="fire-history-card panel">
+            <div className="fire-history-card__header">
+              <h2>Fire History</h2>
+              <p>Explore historical wildfire data and trends.</p>
+            </div>
+            <div className="fire-history-card__body">
+              <WorldMap />
+              <FireHistoryHistogram />
+            </div>
+          </div>
+        </section>
+        <section className="app-main__bottom">
         </section>
       </main>
     </div>

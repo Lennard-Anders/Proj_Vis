@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "data-visuaization-project",
+  "private_key_id": "7f1309159d9443cb08fbc26a56b3595d24ab2248",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDbX37KNulTAgvo\nbWnDM7BElylgvS8iW4v3XcVpzlHwRPHkV59UrGNwlXBj80qmzdwt0WmeYof5jxtV\n9GuxVXI9WV0tNgnfK72G9qmJ2VczhDP2BtEmAdTHakRcWu5bAMg1N6SV4T9tk+rp\nUhvddXn9EMUdi+WK6eYP8vqz8G8+O3EWc19Veq/NRVrFQpa6e6wGovRgsON8WhLg\nHtyj+N+NAqAsFzaI2eQYdtATmAzd1tzH4ZhcRofmABIZNqhXWb9573z088wIzs3p\nqarmyvXy/Y+92/1s97BdtYrxNObHsakkTJukKvF/JA3U2/B7bZjeuPYGj5uQI21d\nV29MwDSJAgMBAAECggEAAtrKusRik8+L6N9lSOt7gfWn/3qI+j+MXNmZC9Bp/czM\ni2kt/OULjdURjaj4K7uz2/5i8oFkihyPHCFbxHTkWHEAIlToyR2Zjli0SFVsaDmd\nFsNopAcD4NzTxcQPNfPd44kP7S8YLQZEKvsSXrplRvldGbyJZu+vHhp8hTbjUiS0\n9Uv62XUdMrMNCOjfav9Ut4lV62DZX7aENLt0w4brEFLjF07ipv/Fh2sLonB5vd12\nM+wYHYTASwOyS+osa8tDqxtcQjKudc7JqJJD0wElDpwi8hTxJA+GGZDKIqk25beg\nk9bZd+zngQmW4dEuhscUJNhsuSNuXZ2Nx7j2NG2qYQKBgQDwYnfnD7dORx1ykS9X\nNFmLK2x73k2IvNEb1/VP+TOTclvLy8r0V3JvjdwhaQeSRWn5Yfc3h3NaocS1hhLc\nKl9Ul01O9Orix067mDXb/Pe+xYtbhgVC396OFwKpkdaUtZrhWFs7TlXGU2iHGlkd\n8e8uAIVPqolXmoiOmc9cyeX26QKBgQDpn5wEudPPlGGlhEnqhjRbvWiBeb1lQsnk\nERK9uPZO0hXRXJLUX78boYZd44t5yd+Oy2IkrY7Yq1OHWboLrpix6Ip7FDxcgfXn\nE3m8HOcST/AfGSZdMbTL0F51/UZ2tpSmsfHoyPT0bAfc8R3N6LLilFp2AdtyYKbj\nTOAAUQUMoQKBgQDnyIqEqYq+V6P1TDixhTCyGHTKG1f3eNjIWDuZmVg53BLXNvHD\nGG6nUcnoDTXXvEaqx+NwD5MS2Nirj1OwJss07Y8FivLRKAyqpeGI9SqNMD1nSprY\nGLSnnVhb2NtnGJT2pBOT47yhNtubKbS0Qwu095uTbYRwi/kQRw7DEYpDwQKBgAZI\n3+aUpSkJYdMVCvP/JjttjfklsD2gHVRATVPDPQUDy8h1CBIkfTyeDMJL072z+4qY\n2AwKizQy761NcZ7M1Ji8m7UR50nJyTatJHI2CNVKRzhe8dRB+Q4ejdv4s0OQR9Fw\nKgTMGyLUISYFanrWjrFfsktIY4HhLbwhnkkD5PHhAoGBALX/3mGwXLy5zLYa/Ejg\nCeKXxSIB3mon4V3lGownOrMjvG+u9c/ZLIVrR72j/NB4aqn3GwsWIXZENnWycwR1\nK0S7kPT1O8FWWz5WxHMcbSt27NZQqpC38STIiQRsi6b5xULGFAgxt9YsmnL7DGjI\n6Ym2nanDWxBVKZp2afCh+0BL\n-----END PRIVATE KEY-----\n",
+  "client_email": "website@data-visuaization-project.iam.gserviceaccount.com",
+  "client_id": "114665787593343895909",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/website%40data-visuaization-project.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

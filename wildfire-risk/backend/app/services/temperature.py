@@ -7,8 +7,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Paths to temperature datasets
-DATA_DIR = Path("/app/data/Datasets")
+# Paths to temperature datasets (mounts put files directly under /app/data)
+DATA_DIR = Path("/app/data")
 AMERICA_DATA = DATA_DIR / "df_america_cleaned.csv"
 CITY_DATA = DATA_DIR / "GlobalLandTemperaturesByCity.csv"
 COUNTRY_DATA = DATA_DIR / "GlobalLandTemperaturesByCountry.csv"
@@ -24,10 +24,12 @@ class TemperatureService:
     def _load_america_data(self) -> pd.DataFrame:
         """Load America temperature data."""
         if self._america_df is None:
+            if not AMERICA_DATA.exists():
+                logger.warning("America temperature dataset missing at %s, falling back to city data", AMERICA_DATA)
+                return self._load_city_data()
             logger.info("Loading America temperature data...")
             self._america_df = pd.read_csv(AMERICA_DATA)
             self._america_df['dt'] = pd.to_datetime(self._america_df['dt'])
-            # Parse latitude/longitude
             self._america_df['lat'] = self._america_df['Latitude'].apply(self._parse_coordinate)
             self._america_df['lon'] = self._america_df['Longitude'].apply(self._parse_coordinate)
         return self._america_df
@@ -35,10 +37,13 @@ class TemperatureService:
     def _load_city_data(self) -> pd.DataFrame:
         """Load global city temperature data."""
         if self._city_df is None:
+            if not CITY_DATA.exists():
+                logger.error("City temperature dataset missing at %s", CITY_DATA)
+                self._city_df = pd.DataFrame()
+                return self._city_df
             logger.info("Loading global city temperature data...")
             self._city_df = pd.read_csv(CITY_DATA)
             self._city_df['dt'] = pd.to_datetime(self._city_df['dt'])
-            # Parse latitude/longitude
             self._city_df['lat'] = self._city_df['Latitude'].apply(self._parse_coordinate)
             self._city_df['lon'] = self._city_df['Longitude'].apply(self._parse_coordinate)
         return self._city_df
@@ -81,6 +86,10 @@ class TemperatureService:
                 df = self._load_america_data()
             else:
                 df = self._load_city_data()
+
+            if df is None or df.empty:
+                logger.warning("No temperature data available after loading datasets")
+                return []
             
             # Filter by date (month-year match)
             df['year_month'] = df['dt'].dt.to_period('M').astype(str)

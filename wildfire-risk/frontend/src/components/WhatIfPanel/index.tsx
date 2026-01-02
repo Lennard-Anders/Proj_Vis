@@ -37,11 +37,26 @@ const formatFeatureName = (name: string) => {
   return map[name] ?? name.replace(/_/g, " ");
 };
 
+const sliderEmojis: Record<string, string> = {
+  temperature: "🌡️",
+  wind_speed_10m: "💨",
+  rh: "💧",
+  rain_24h: "🌧️",
+};
+
+const createEmojiDataUri = (emoji: string) => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44"><text x="50%" y="55%" font-size="24" text-anchor="middle" dominant-baseline="middle">${emoji}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+};
+
+type SliderThumbStyle = React.CSSProperties & {
+  "--thumb-emoji"?: string;
+};
+
 
 const WhatIfPanel: React.FC = () => {
   const [overrides, setOverrides] = useState<Record<string, number>>(defaultOverrides);
   const [result, setResult] = useState<string>("");
-  const [clickedLocation, setClickedLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [llmText, setLlmText] = useState<string>("");
   const [llmProbability, setLlmProbability] = useState<number | null>(null);
   const [llmInputs, setLlmInputs] = useState<LlmInputs | null>(null);
@@ -57,7 +72,17 @@ const WhatIfPanel: React.FC = () => {
   const runAIRiskPrediction = useTriViewState((state: TriViewState) => state.runAIRiskPrediction);
   const runAIRiskGrid = useTriViewState((state: TriViewState) => state.runAIRiskGrid);
   const mapViewState = useTriViewState((state: TriViewState) => state.mapViewState);
+  const clickedLocation = useTriViewState((state: TriViewState) => state.clickedLocation);
+  const setClickedLocation = useTriViewState((state: TriViewState) => state.setClickedLocation);
   const setWildfireLlmExplanation = useTriViewState((state: TriViewState) => state.setWildfireLlmExplanation);
+
+  // Autofill manual lat/lon fields when user clicks on map
+  useEffect(() => {
+    if (clickedLocation) {
+      setManualLat(clickedLocation.lat.toFixed(4));
+      setManualLon(clickedLocation.lon.toFixed(4));
+    }
+  }, [clickedLocation]);
 
   useEffect(() => {
     const loadModels = async () => {
@@ -195,6 +220,12 @@ const WhatIfPanel: React.FC = () => {
     rh: { min: 0, max: 100, unit: '%' },
     rain_24h: { min: 0, max: 50, unit: 'mm' },
   };
+  const displayLabels: Record<string, string> = {
+    temperature: 'Temperature',
+    wind_speed_10m: 'Windspeed',
+    rh: 'Humidity',
+    rain_24h: 'Rain',
+  };
 
   return (
     <div className="panel">
@@ -273,29 +304,42 @@ const WhatIfPanel: React.FC = () => {
 
         {(Object.entries(overrides) as Array<[string, number]>).map(([feature, value]) => {
           const range = parameterRanges[feature] || { min: 0, max: 100, unit: '' };
+          const emoji = sliderEmojis[feature];
+          const sliderStyle: SliderThumbStyle | undefined = emoji
+            ? { "--thumb-emoji": `url("${createEmojiDataUri(emoji)}")` }
+            : undefined;
           return (
-            <label key={feature}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ textTransform: "none" }} title={PARAM_HELP[feature] ?? ""}>
-  {PARAM_LABELS[feature] ?? feature.replace(/_/g, " ")}
-</span>
+  <label key={feature}>
+    <div className="what-if__slider-header">
+      <span
+        className="what-if__chip what-if__chip--label"
+        title={PARAM_HELP[feature] ?? ""}
+      >
+        {emoji ? `${emoji} ` : ""}
+        {(PARAM_LABELS[feature] ?? displayLabels[feature] ?? feature.replace(/_/g, " "))
+          .toUpperCase()}
+      </span>
 
-                <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>
-                  {value.toFixed(1)} {range.unit}
-                </span>
-              </div>
-              <input
-                type="range"
-                min={range.min}
-                max={range.max}
-                step={feature === 'rain_24h' ? 0.5 : 0.1}
-                value={value}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  handleChange(feature, Number(event.target.value))
-                }
-              />
-            </label>
-          );
+      <span className="what-if__chip what-if__chip--value">
+        {value.toFixed(1)} {range.unit}
+      </span>
+    </div>
+
+    <input
+      type="range"
+      className="what-if__slider"
+      min={range.min}
+      max={range.max}
+      step={feature === "rain_24h" ? 0.5 : 0.1}
+      value={value}
+      style={sliderStyle}
+      onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+        handleChange(feature, Number(event.target.value))
+      }
+    />
+  </label>
+);
+
         })}
       </div>
       

@@ -26,7 +26,11 @@ const creator = (set) => ({
         pitch: 0,
         bearing: 0,
     },
+    clickedLocation: undefined,
     setMapViewState: (viewState) => set({ mapViewState: viewState }),
+    setClickedLocation: (coords) => {
+        set({ clickedLocation: coords });
+    },
     initialize: async () => {
         set({ loading: true });
         try {
@@ -75,7 +79,6 @@ const creator = (set) => ({
                     zoom: 8,
                     pitch: 0,
                     bearing: 0,
-                    transitionDuration: 1000,
                 }
             });
             try {

@@ -21,6 +21,7 @@ router = APIRouter(prefix="/gee", tags=["google-earth-engine"])
 
 _gee_pipeline: Optional[GEEDataPipeline] = None
 FIRE_HISTORY_CSV = Path("/app/data/fire_history.csv")
+FORCE_CSV = os.getenv("FIRE_HISTORY_FORCE_CSV", "1") == "1"
 
 def get_gee_pipeline() -> GEEDataPipeline:
     """Get or create GEE pipeline instance"""
@@ -76,7 +77,7 @@ async def get_fire_history(
     Serves from cached CSV if available for faster response
     """
     try:
-        # Try to load from cached CSV first for speed
+        # Try to load from cached CSV first for speed; optionally force CSV-only mode
         if FIRE_HISTORY_CSV.exists():
             logger.info(f"📂 Loading fire history from cached CSV: {FIRE_HISTORY_CSV}")
             try:
@@ -109,8 +110,12 @@ async def get_fire_history(
                 )
             except Exception as e:
                 logger.warning(f"Failed to load CSV cache: {e}, falling back to GEE query")
+        else:
+            if FORCE_CSV:
+                logger.error("Fire history CSV not found and GEE is disabled (FORCE_CSV=1)")
+                raise HTTPException(status_code=503, detail="Fire history CSV not found; GEE disabled")
         
-        # Fall back to GEE query if no CSV or CSV loading failed
+        # Fall back to GEE query if allowed
         logger.info("🌍 Querying Google Earth Engine for fire history")
         pipeline = get_gee_pipeline()
         

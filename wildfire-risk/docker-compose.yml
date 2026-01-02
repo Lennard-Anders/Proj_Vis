@@ -24,9 +24,13 @@ services:
     environment:
       MODEL_BUNDLE_PATH: /app/models/bundles/current
       DATABASE_URL: postgres://wildfire:wildfire@db:5432/wildfire
+      GEE_SERVICE_ACCOUNT_KEY: /app/gee-key.json
+      GEE_PROJECT: data-visuaization-project
+      FIRE_HISTORY_FORCE_CSV: "1"
     volumes:
       - ./backend/models/bundles/current:/app/models/bundles/current
-      - ./data/sample:/data/sample:ro
+      - ./data:/app/data:ro
+      - ./data-visuaization-project-7f1309159d94.json/key.json:/app/gee-key.json:ro
     depends_on:
       db:
         condition: service_healthy

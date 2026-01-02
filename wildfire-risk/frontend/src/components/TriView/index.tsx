@@ -6,7 +6,7 @@ import { HeatmapLayer, ScreenGridLayer } from "@deck.gl/aggregation-layers";
 import { TileLayer } from "@deck.gl/geo-layers";
 import { BitmapLayer } from "@deck.gl/layers";
 import type { RiskGridCell } from "../../api/types";
-import { useRisk, useScenario, useLoading, useSelectedFireEvent, useFireAnalysis } from "../../state/selectors";
+import { useRisk, useScenario, useLoading, useSelectedFireEvent, useFireAnalysis, useSetClickedLocation, useAIRiskPrediction } from "../../state/selectors";
 import { useTriViewState, TriViewState } from "../../state/store";
 import MapHeatmap from "../MapHeatmap";
 import MapLegend from "../MapLegend";
@@ -88,6 +88,8 @@ const TriView: React.FC = () => {
   const loading = useLoading();
   const selectedFireEvent = useSelectedFireEvent();
   const fireAnalysis = useFireAnalysis();
+  const setClickedLocation = useSetClickedLocation();
+  const aiRiskPrediction = useAIRiskPrediction();
   const aiRiskGrid = useTriViewState((state: TriViewState) => state.aiRiskGrid);
   const [date, setDate] = useState<string>("2013-01-01"); // Use date that exists in historical dataset
   const [temperatureData, setTemperatureData] = useState<TemperaturePoint[]>([]);
@@ -98,6 +100,7 @@ const TriView: React.FC = () => {
   const [showWindLayer, setShowWindLayer] = useState(false);
   const [showHumidityLayer, setShowHumidityLayer] = useState(false);
   const [showRainLayer, setShowRainLayer] = useState(false);
+  const clickedLocationRef = useTriViewState((state: TriViewState) => state.clickedLocation);
 
   // Load temperature data - ALWAYS load, just control visibility
   useEffect(() => {
@@ -327,6 +330,33 @@ const TriView: React.FC = () => {
         // Fire hover handling moved to WorldMap component
       },
     }) : null;
+
+    // Highlight AI risk prediction location (What-If click) if available
+    const aiPredictionLayer = aiRiskPrediction && showTempLayer !== undefined ? new ScatterplotLayer({
+      id: "ai-risk-prediction-marker",
+      data: [{
+        latitude: (clickedLocationRef?.lat ?? INITIAL_VIEW_STATE.latitude),
+        longitude: (clickedLocationRef?.lon ?? INITIAL_VIEW_STATE.longitude),
+        probability: aiRiskPrediction.probability,
+        risk_color: aiRiskPrediction.risk_color || "#ff6b35",
+      }],
+      getPosition: (d: any) => [d.longitude, d.latitude],
+      getRadius: 12000,
+      radiusUnits: "meters",
+      getFillColor: (d: any) => {
+        const hex = (d.risk_color || "#ff6b35").replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        return [r, g, b, 180];
+      },
+      pickable: true,
+      opacity: 0.8,
+      stroked: true,
+      getLineColor: [255, 255, 255, 220],
+      getLineWidth: 300,
+      lineWidthUnits: "meters",
+    }) : null;
     
     return [
       ...baseLayers,
@@ -336,6 +366,7 @@ const TriView: React.FC = () => {
       rainLayer,
       riskLayer,
       aiRiskLayer,
+      aiPredictionLayer,
       fireMarkerLayer,
     ].filter(Boolean);
   }, [risk, selectedFireEvent, showTempLayer, showWindLayer, showHumidityLayer, showRainLayer, temperatureData, windData, humidityData, rainData, aiRiskGrid]);
@@ -357,7 +388,7 @@ const TriView: React.FC = () => {
                 padding: '6px 12px',
                 fontSize: '0.85rem',
                 background: showTempLayer ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'var(--bg-secondary)',
-                color: 'white',
+                color: 'Black',
                 border: 'none',
                 borderRadius: '4px',
                 cursor: 'pointer',
@@ -373,7 +404,7 @@ const TriView: React.FC = () => {
                 padding: '6px 12px',
                 fontSize: '0.85rem',
                 background: showWindLayer ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'var(--bg-secondary)',
-                color: 'white',
+                color: 'Black',
                 border: 'none',
                 borderRadius: '4px',
                 cursor: 'pointer',
@@ -389,7 +420,7 @@ const TriView: React.FC = () => {
                 padding: '6px 12px',
                 fontSize: '0.85rem',
                 background: showHumidityLayer ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'var(--bg-secondary)',
-                color: 'white',
+                color: 'Black',
                 border: 'none',
                 borderRadius: '4px',
                 cursor: 'pointer',
@@ -405,7 +436,7 @@ const TriView: React.FC = () => {
                 padding: '6px 12px',
                 fontSize: '0.85rem',
                 background: showRainLayer ? 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)' : 'var(--bg-secondary)',
-                color: 'white',
+                color: 'Black',
                 border: 'none',
                 borderRadius: '4px',
                 cursor: 'pointer',
@@ -461,6 +492,13 @@ const TriView: React.FC = () => {
                 layers={layers}
                 initialViewState={INITIAL_VIEW_STATE as any}
                 controller
+                onClick={(info: any) => {
+                  if (info?.coordinate && Array.isArray(info.coordinate)) {
+                    const [lon, lat] = info.coordinate;
+                    setClickedLocation?.({ lat, lon });
+                    console.log("Map click -> set What-If coords", { lat, lon });
+                  }
+                }}
                 getTooltip={(info: PickingInfo<any>) => {
                   // Show fire analysis tooltip if hovering fire marker
                   if (info.layer?.id === 'fire-marker' && fireAnalysis) {

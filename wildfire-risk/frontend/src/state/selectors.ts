@@ -14,5 +14,7 @@ export const useLoadFireHistory = () => useTriViewState((state: TriViewState) =>
 export const useSelectFireEvent = () => useTriViewState((state: TriViewState) => state.selectFireEvent);
 export const useMapViewState = () => useTriViewState((state: TriViewState) => state.mapViewState);
 export const useSetMapViewState = () => useTriViewState((state: TriViewState) => state.setMapViewState);
+export const useClickedLocation = () => useTriViewState((state: TriViewState) => state.clickedLocation);
+export const useSetClickedLocation = () => useTriViewState((state: TriViewState) => state.setClickedLocation);
 export const useAIRiskPrediction = () => useTriViewState((state: TriViewState) => state.aiRiskPrediction);
 export const useAIRiskGrid = () => useTriViewState((state: TriViewState) => state.aiRiskGrid);

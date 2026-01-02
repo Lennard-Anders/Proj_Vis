@@ -17,7 +17,8 @@ export interface TriViewState {
   selectedDate: string;
   bbox?: { min_lat: number; max_lat: number; min_lon: number; max_lon: number };
   loading: boolean;
-  mapViewState: { longitude: number; latitude: number; zoom: number; pitch: number; bearing: number; transitionDuration?: number };
+  mapViewState: { longitude: number; latitude: number; zoom: number; pitch: number; bearing: number };
+  clickedLocation?: { lat: number; lon: number };
   initialize: () => Promise<void>;
   setScenario: (scenario: TriViewState["selectedScenario"]) => void;
   runWhatIf: (overrides: Record<string, number>) => Promise<void>;
@@ -27,6 +28,7 @@ export interface TriViewState {
   selectFireEvent: (event: FireEvent | undefined) => Promise<void>;
   setWildfireLlmExplanation: (data: WildfireLlmResponse | undefined) => void;
   setMapViewState: (viewState: Partial<TriViewState["mapViewState"]>) => void;
+  setClickedLocation: (coords: { lat: number; lon: number }) => void;
   setDate: (date: string) => void;
   setBbox: (bbox: { min_lat: number; max_lat: number; min_lon: number; max_lon: number } | undefined) => void;
 }
@@ -66,6 +68,7 @@ const creator = (set: SetState): TriViewState => ({
     pitch: 0,
     bearing: 0,
   },
+  clickedLocation: undefined,
   wildfireLlmExplanation: undefined,
   initialize: async () => {
     set({ loading: true });
@@ -166,6 +169,9 @@ const creator = (set: SetState): TriViewState => ({
     set((state) => ({ 
       mapViewState: { ...state.mapViewState, ...viewState } 
     }));
+  },
+  setClickedLocation: (coords) => {
+    set({ clickedLocation: coords });
   },
   setDate: (date: string) => {
     set({ selectedDate: date });
