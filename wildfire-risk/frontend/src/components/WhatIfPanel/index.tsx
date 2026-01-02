@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { runCounterfactual, fetchWildfireRiskLLM, fetchWildfireModels } from "../../api/client";
 import { useTriViewState, TriViewState } from "../../state/store";
+import { PARAM_LABELS, PARAM_HELP } from "../../ui/labels";
 
 const defaultOverrides = {
   temperature: 24,
@@ -17,6 +18,25 @@ type LlmInputs = {
   lat?: number;
   lon?: number;
 };
+
+const getConfidenceLabel = (probability: number | null) => {
+  if (probability === null) return "Unknown";
+  if (probability >= 70) return "High";
+  if (probability >= 40) return "Medium";
+  return "Low";
+};
+
+const formatFeatureName = (name: string) => {
+  const map: Record<string, string> = {
+    rh: "Humidity",
+    wind_speed_10m: "Wind speed (10 m)",
+    rain_24h: "Rain (last 24h)",
+    vpd: "Vapor pressure deficit",
+  };
+
+  return map[name] ?? name.replace(/_/g, " ");
+};
+
 
 const WhatIfPanel: React.FC = () => {
   const [overrides, setOverrides] = useState<Record<string, number>>(defaultOverrides);
@@ -256,9 +276,10 @@ const WhatIfPanel: React.FC = () => {
           return (
             <label key={feature}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ textTransform: 'capitalize' }}>
-                  {feature.replace(/_/g, ' ')}
-                </span>
+                <span style={{ textTransform: "none" }} title={PARAM_HELP[feature] ?? ""}>
+  {PARAM_LABELS[feature] ?? feature.replace(/_/g, " ")}
+</span>
+
                 <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>
                   {value.toFixed(1)} {range.unit}
                 </span>
@@ -304,13 +325,16 @@ const WhatIfPanel: React.FC = () => {
           {llmLoading && (
             <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', color: '#4338ca' }}>
               <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid #c7d2fe', borderTopColor: '#4338ca', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-              <span style={{ fontSize: '0.95rem' }}>Berechne Erklärung…</span>
+              <span style={{ fontSize: '0.95rem' }}>Generating explanation…</span>
             </div>
           )}
 
           {!llmLoading && llmProbability !== null && (
             <div style={{ marginTop: '6px', fontSize: '1rem', fontWeight: 700, color: '#4338ca' }}>
               Probability: {llmProbability}%
+              <div style={{ fontSize: '0.8rem', fontWeight: 400, marginTop: '2px', opacity: 0.85 }}>
+               Confidence: {getConfidenceLabel(llmProbability)}
+              </div>
             </div>
           )}
           {!llmLoading && llmText && (
@@ -332,7 +356,7 @@ const WhatIfPanel: React.FC = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '4px', background: 'rgba(99,102,241,0.05)', padding: '8px', borderRadius: '6px' }}>
                     {featureContribs.map((item) => (
                       <React.Fragment key={item.feature}>
-                        <span style={{ textTransform: 'none' }}>{item.feature}</span>
+                        <span style={{ textTransform: 'none' }}>{formatFeatureName(item.feature)}</span>
                         <span style={{ fontVariantNumeric: 'tabular-nums', color: item.weight >= 0 ? '#16a34a' : '#dc2626' }}>
                           {item.weight.toFixed(2)}
                         </span>
@@ -348,7 +372,11 @@ const WhatIfPanel: React.FC = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '4px', background: 'rgba(99,102,241,0.05)', padding: '8px', borderRadius: '6px' }}>
                     {featureInteractions.map((item) => (
                       <React.Fragment key={item.pair}>
-                        <span style={{ textTransform: 'none' }}>{item.pair}</span>
+                        <span style={{ textTransform: 'none' }}>{item.pair
+                     .split(" x ")
+                     .map(formatFeatureName)
+                     .join(" × ")}
+                </span>
                         <span style={{ fontVariantNumeric: 'tabular-nums', color: item.weight >= 0 ? '#16a34a' : '#dc2626' }}>
                           {item.weight.toFixed(2)}
                         </span>
