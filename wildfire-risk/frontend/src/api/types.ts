@@ -127,6 +127,10 @@ export interface AIRiskGridResponse {
   resolution: number;
 }
 
+export interface AIRiskConfidenceResponse {
+  confidence_percent: number;
+}
+
 export interface WildfireLlmResponse {
   wildfire_probability_percent: number;
   explanation: string;

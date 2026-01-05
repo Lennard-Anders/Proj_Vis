@@ -9,6 +9,7 @@ import {
   AIRiskPrediction,
   AIRiskGridResponse,
   WildfireLlmResponse,
+  AIRiskConfidenceResponse,
 } from "./types";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -116,6 +117,32 @@ export async function predictAIRisk(
     use_historical_context: true,
   };
   const { data } = await api.post<AIRiskPrediction>("/ai-risk/predict", payload);
+  return data;
+}
+
+export async function fetchAIRiskConfidence(params: {
+  predicted_probability_percent: number;
+  latitude: number;
+  longitude: number;
+  temperature: number;
+  wind_speed_10m: number;
+  rh: number;
+  rain_24h?: number;
+  date?: string;
+  model?: string;
+}): Promise<AIRiskConfidenceResponse> {
+  const payload = {
+    predicted_probability_percent: Math.round(params.predicted_probability_percent),
+    latitude: params.latitude,
+    longitude: params.longitude,
+    temperature: params.temperature,
+    wind_speed_10m: params.wind_speed_10m,
+    rh: params.rh,
+    rain_24h: params.rain_24h ?? 0,
+    date: params.date,
+    model: params.model,
+  };
+  const { data } = await api.post<AIRiskConfidenceResponse>("/ai-risk/confidence", payload);
   return data;
 }
 

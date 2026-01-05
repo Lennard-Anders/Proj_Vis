@@ -1,11 +1,11 @@
 """AI-powered wildfire risk prediction API routes."""
-from fastapi import APIRouter, HTTPException, Query
-from typing import Optional, List, Dict, Any
-from pydantic import BaseModel
-from datetime import date
+from fastapi import APIRouter, HTTPException
+from typing import Optional, List, Dict
+from pydantic import BaseModel, Field
 
 from ..services.ai_risk import wildfire_predictor
 from ..services.temperature import temperature_service
+from ..services.llm_wildfire import estimate_wildfire_prediction_confidence_llm
 
 router = APIRouter(prefix="/ai-risk", tags=["ai-risk"])
 
@@ -50,6 +50,24 @@ class RiskPredictionResponse(BaseModel):
     recommendations: List[str]
     confidence: float
     features: Dict[str, float]
+
+
+class RiskConfidenceRequest(BaseModel):
+    """Request for LLM-based confidence (separate from ML prediction)."""
+
+    predicted_probability_percent: int = Field(..., ge=0, le=100)
+    latitude: float
+    longitude: float
+    temperature: float
+    wind_speed_10m: float
+    rh: float
+    rain_24h: float = 0.0
+    date: Optional[str] = None
+    model: Optional[str] = None
+
+
+class RiskConfidenceResponse(BaseModel):
+    confidence_percent: int = Field(..., ge=0, le=100)
 
 
 class GridCell(BaseModel):
@@ -174,4 +192,27 @@ async def predict_risk_grid(request: RiskGridRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Error predicting risk grid: {str(e)}"
+        )
+
+
+@router.post("/confidence", response_model=RiskConfidenceResponse)
+async def predict_risk_confidence(request: RiskConfidenceRequest):
+    """Estimate confidence (0-100) for an existing probability via a separate LLM call."""
+    try:
+        result = await estimate_wildfire_prediction_confidence_llm(
+            predicted_probability_percent=request.predicted_probability_percent,
+            temperature_c=request.temperature,
+            wind_speed_kmh=request.wind_speed_10m * 3.6,
+            relative_humidity_percent=request.rh,
+            rain_last_24h_mm=request.rain_24h,
+            model=request.model,
+            latitude=request.latitude,
+            longitude=request.longitude,
+            date_str=request.date,
+        )
+        return RiskConfidenceResponse(**result)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error estimating confidence: {str(e)}",
         )

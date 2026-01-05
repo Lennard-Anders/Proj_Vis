@@ -6,6 +6,7 @@ import { useTriViewState, TriViewState } from "../../state/store";
 const ExplanationPanel: React.FC = () => {
   const explanation = useExplanation();
   const aiRiskPrediction = useTriViewState((state: TriViewState) => state.aiRiskPrediction);
+  const aiRiskConfidencePercent = useTriViewState((state: TriViewState) => state.aiRiskConfidencePercent);
   const wildfireLlmExplanation = useTriViewState((state: TriViewState) => state.wildfireLlmExplanation);
 
   // DEBUG: Log what we have
@@ -13,6 +14,7 @@ const ExplanationPanel: React.FC = () => {
     hasAiPrediction: !!aiRiskPrediction, 
     hasExplanation: !!explanation,
     hasWildfireLlmExplanation: !!wildfireLlmExplanation,
+    aiRiskConfidencePercent,
     aiRiskPrediction,
     wildfireLlmExplanation,
   });
@@ -47,8 +49,14 @@ const ExplanationPanel: React.FC = () => {
             Probability: <strong>{(probability * 100).toFixed(1)}%</strong>
           </div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
-            Confidence: {(confidence * 100).toFixed(0)}%
+            Confidence (model): {(confidence * 100).toFixed(0)}%
           </div>
+
+          {typeof aiRiskConfidencePercent === "number" && (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              Confidence (AI): {aiRiskConfidencePercent.toFixed(0)}%
+            </div>
+          )}
         </div>
 
         {/* Environmental Conditions */}

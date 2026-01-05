@@ -89,3 +89,66 @@ export async function fetchWildfireModels() {
     const { data } = await api.get("/wildfire-llm/models");
     return data;
 }
+
+export async function predictAIRisk(
+    latitude,
+    longitude,
+    temperature,
+    wind_speed_10m,
+    rh,
+    rain_24h = 0,
+    date
+) {
+    const payload = {
+        latitude,
+        longitude,
+        temperature,
+        wind_speed_10m,
+        rh,
+        rain_24h,
+        date,
+        use_historical_context: true,
+    };
+    const { data } = await api.post("/ai-risk/predict", payload);
+    return data;
+}
+
+export async function predictAIRiskGrid(
+    center_lat,
+    center_lon,
+    temperature,
+    wind_speed_10m,
+    rh,
+    rain_24h = 0,
+    grid_size_deg = 1.0,
+    grid_resolution = 20
+) {
+    const payload = {
+        center_lat,
+        center_lon,
+        grid_size_deg,
+        grid_resolution,
+        temperature,
+        wind_speed_10m,
+        rh,
+        rain_24h,
+    };
+    const { data } = await api.post("/ai-risk/predict-grid", payload);
+    return data;
+}
+
+export async function fetchAIRiskConfidence(params) {
+    const payload = {
+        predicted_probability_percent: Math.round(params.predicted_probability_percent),
+        latitude: params.latitude,
+        longitude: params.longitude,
+        temperature: params.temperature,
+        wind_speed_10m: params.wind_speed_10m,
+        rh: params.rh,
+        rain_24h: params.rain_24h ?? 0,
+        date: params.date,
+        model: params.model,
+    };
+    const { data } = await api.post("/ai-risk/confidence", payload);
+    return data;
+}

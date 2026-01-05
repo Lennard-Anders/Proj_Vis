@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { runCounterfactual, fetchWildfireRiskLLM, fetchWildfireModels } from "../../api/client";
+import { runCounterfactual, fetchWildfireRiskLLM, fetchWildfireModels, fetchAIRiskConfidence } from "../../api/client";
 import { useTriViewState, TriViewState } from "../../state/store";
 import { PARAM_LABELS, PARAM_HELP } from "../../ui/labels";
 
@@ -19,10 +19,10 @@ type LlmInputs = {
   lon?: number;
 };
 
-const getConfidenceLabel = (probability: number | null) => {
-  if (probability === null) return "Unknown";
-  if (probability >= 70) return "High";
-  if (probability >= 40) return "Medium";
+const getConfidenceLabelFromPercent = (confidencePercent: number | null) => {
+  if (confidencePercent === null) return "Unknown";
+  if (confidencePercent >= 75) return "High";
+  if (confidencePercent >= 45) return "Medium";
   return "Low";
 };
 
@@ -59,6 +59,7 @@ const WhatIfPanel: React.FC = () => {
   const [result, setResult] = useState<string>("");
   const [llmText, setLlmText] = useState<string>("");
   const [llmProbability, setLlmProbability] = useState<number | null>(null);
+  const [llmConfidencePercent, setLlmConfidencePercent] = useState<number | null>(null);
   const [llmInputs, setLlmInputs] = useState<LlmInputs | null>(null);
   const [llmLoading, setLlmLoading] = useState<boolean>(false);
   const [featureContribs, setFeatureContribs] = useState<Array<{ feature: string; weight: number }>>([]);
@@ -115,6 +116,7 @@ const WhatIfPanel: React.FC = () => {
     setResult("Running predictions...");
     setLlmText("");
     setLlmProbability(null);
+    setLlmConfidencePercent(null);
     setLlmInputs(null);
     setFeatureContribs([]);
     setFeatureInteractions([]);
@@ -176,6 +178,24 @@ const WhatIfPanel: React.FC = () => {
         setLlmInputs({ ...snapshot, wind_speed_kmh: windSpeedKmh });
         setFeatureContribs(llmData.feature_contributions || []);
         setFeatureInteractions(llmData.feature_interactions || []);
+
+        // Separate confidence call (not derived from probability)
+        try {
+          const conf = await fetchAIRiskConfidence({
+            predicted_probability_percent: llmData.wildfire_probability_percent,
+            latitude: lat,
+            longitude: lon,
+            temperature: snapshot.temperature,
+            wind_speed_10m: overrides.wind_speed_10m,
+            rh: snapshot.rh,
+            rain_24h: snapshot.rain_24h,
+            model: selectedModel,
+          });
+          setLlmConfidencePercent(conf.confidence_percent);
+        } catch (confErr) {
+          console.warn("LLM confidence request failed:", confErr);
+          setLlmConfidencePercent(null);
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown LLM error";
         console.error("Wildfire LLM request failed:", err);
@@ -185,6 +205,7 @@ const WhatIfPanel: React.FC = () => {
         });
         setLlmProbability(0);
         setLlmText("The AI explanation service returned an invalid response.");
+        setLlmConfidencePercent(null);
         setLlmInputs({
           temperature: overrides.temperature,
           wind_speed_kmh: overrides.wind_speed_10m * 3.6,
@@ -376,9 +397,11 @@ const WhatIfPanel: React.FC = () => {
           {!llmLoading && llmProbability !== null && (
             <div style={{ marginTop: '6px', fontSize: '1rem', fontWeight: 700, color: '#4338ca' }}>
               Probability: {llmProbability}%
-              <div style={{ fontSize: '0.8rem', fontWeight: 400, marginTop: '2px', opacity: 0.85 }}>
-               Confidence: {getConfidenceLabel(llmProbability)}
-              </div>
+                  {llmConfidencePercent !== null && (
+                    <div style={{ fontSize: '0.8rem', fontWeight: 400, marginTop: '2px', opacity: 0.85 }}>
+                      Confidence: {llmConfidencePercent}% ({getConfidenceLabelFromPercent(llmConfidencePercent)})
+                    </div>
+                  )}
             </div>
           )}
           {!llmLoading && llmText && (

@@ -17,4 +17,5 @@ export const useSetMapViewState = () => useTriViewState((state: TriViewState) =>
 export const useClickedLocation = () => useTriViewState((state: TriViewState) => state.clickedLocation);
 export const useSetClickedLocation = () => useTriViewState((state: TriViewState) => state.setClickedLocation);
 export const useAIRiskPrediction = () => useTriViewState((state: TriViewState) => state.aiRiskPrediction);
+export const useAIRiskConfidencePercent = () => useTriViewState((state: TriViewState) => state.aiRiskConfidencePercent);
 export const useAIRiskGrid = () => useTriViewState((state: TriViewState) => state.aiRiskGrid);
