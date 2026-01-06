@@ -183,18 +183,26 @@ const EventExplorer: React.FC = () => {
   const monthGroups = useMemo(() => {
     if (!yearFilteredEvents.length) return [];
     const sorted = [...yearFilteredEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    const groups: Array<{ key: string; label: string; events: FireEvent[] }> = [];
+    const groups: Array<{ key: string; label: string; days: Array<{ key: string; label: string; events: FireEvent[] }> }> = [];
 
     sorted.forEach((ev) => {
       const d = new Date(ev.date);
-      const key = `${d.getFullYear()}-${d.getMonth()}`;
-      const label = d.toLocaleString('en-US', { month: 'short' });
-      const current = groups[groups.length - 1];
-      if (current && current.key === key) {
-        current.events.push(ev);
-      } else {
-        groups.push({ key, label, events: [ev] });
+      const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
+      const monthLabel = d.toLocaleString('en-US', { month: 'short' });
+      let monthGroup = groups[groups.length - 1];
+      if (!monthGroup || monthGroup.key !== monthKey) {
+        monthGroup = { key: monthKey, label: monthLabel, days: [] };
+        groups.push(monthGroup);
       }
+
+      const dayKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      let dayGroup = monthGroup.days[monthGroup.days.length - 1];
+      if (!dayGroup || dayGroup.key !== dayKey) {
+        dayGroup = { key: dayKey, label: d.toLocaleString('en-US', { day: 'numeric' }), events: [] };
+        monthGroup.days.push(dayGroup);
+      }
+
+      dayGroup.events.push(ev);
     });
 
     return groups;
@@ -338,31 +346,35 @@ const EventExplorer: React.FC = () => {
                 <div
                   key={`month-group-${group.key}`}
                   className={`timeline-month-group ${groupIndex === 0 ? 'timeline-month-group--first' : ''}`}
-                  style={{ flex: group.events.length || 1 }}
+                  style={{ flex: group.days.reduce((sum, day) => sum + day.events.length, 0) || 1 }}
                 >
-                  {group.events.map((event) => {
-                    const isSelected = selectedFireEvent?.event_id === event.event_id;
-                    const frp = event.fire_radiative_power;
-                    const emoji = '🔥';
-                    const emojiSize = getEmojiSize(frp);
+                  {group.days.map((day) => (
+                    <div key={`day-${day.key}`} className="timeline-day-group">
+                      {day.events.map((event) => {
+                        const isSelected = selectedFireEvent?.event_id === event.event_id;
+                        const frp = event.fire_radiative_power;
+                        const emoji = '🔥';
+                        const emojiSize = getEmojiSize(frp);
 
-                    return (
-                      <div
-                        key={event.event_id}
-                        className={`timeline-event ${isSelected ? 'timeline-event--selected' : ''}`}
-                        onClick={() => handleEventClick(event)}
-                        onMouseEnter={(e) => {
-                          const target = e.currentTarget;
-                          const left = target.offsetLeft + target.offsetWidth / 2;
-                          setHoverInfo({ event, left });
-                        }}
-                        onMouseLeave={() => setHoverInfo(null)}
-                      >
-                        <div className="timeline-event-emoji" style={{ fontSize: `${emojiSize}px` }}>{emoji}</div>
-                        {isSelected && <div className="timeline-event-marker">📍</div>}
-                      </div>
-                    );
-                  })}
+                        return (
+                          <div
+                            key={event.event_id}
+                            className={`timeline-event ${isSelected ? 'timeline-event--selected' : ''}`}
+                            onClick={() => handleEventClick(event)}
+                            onMouseEnter={(e) => {
+                              const target = e.currentTarget;
+                              const left = target.offsetLeft + target.offsetWidth / 2;
+                              setHoverInfo({ event, left });
+                            }}
+                            onMouseLeave={() => setHoverInfo(null)}
+                          >
+                            <div className="timeline-event-emoji" style={{ fontSize: `${emojiSize}px` }}>{emoji}</div>
+                            {isSelected && <div className="timeline-event-marker">📍</div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
               ))}
               {hoverInfo && (
@@ -380,7 +392,7 @@ const EventExplorer: React.FC = () => {
                   <div
                     key={`label-${group.key}`}
                     className={`timeline-months-segment ${idx === 0 ? 'timeline-months-segment--first' : ''}`}
-                    style={{ flex: group.events.length || 1 }}
+                    style={{ flex: group.days.reduce((sum, day) => sum + day.events.length, 0) || 1 }}
                   >
                     <div className="timeline-months-segment__label">{group.label}</div>
                   </div>
