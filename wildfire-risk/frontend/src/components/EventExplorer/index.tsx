@@ -15,6 +15,7 @@ const EventExplorer: React.FC = () => {
   const [hoverInfo, setHoverInfo] = useState<{ event: FireEvent; left: number } | null>(null);
   const [hoverLocation, setHoverLocation] = useState<string>('');
   const [hoverLocationLoading, setHoverLocationLoading] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
   // Region definitions
   const regions: Record<string, { name: string; lat?: number; lon?: number; radius?: number; bounds?: { latMin: number; latMax: number; lonMin: number; lonMax: number } }> = {
@@ -159,9 +160,14 @@ const EventExplorer: React.FC = () => {
     return fireHistory.events;
   }, [fireHistory, selectedRegion]);
 
+  const yearFilteredEvents = useMemo(() => {
+    if (!selectedYear) return filteredEvents;
+    return filteredEvents.filter((ev) => new Date(ev.date).getFullYear() === selectedYear);
+  }, [filteredEvents, selectedYear]);
+
   const monthGroups = useMemo(() => {
-    if (!filteredEvents.length) return [];
-    const sorted = [...filteredEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    if (!yearFilteredEvents.length) return [];
+    const sorted = [...yearFilteredEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const groups: Array<{ key: string; label: string; events: FireEvent[] }> = [];
 
     sorted.forEach((ev) => {
@@ -177,7 +183,22 @@ const EventExplorer: React.FC = () => {
     });
 
     return groups;
+  }, [yearFilteredEvents]);
+
+  const availableYears = useMemo(() => {
+    if (!filteredEvents.length) return [] as number[];
+    const years = Array.from(new Set(filteredEvents.map((ev) => new Date(ev.date).getFullYear())));
+    return years.sort((a, b) => b - a);
   }, [filteredEvents]);
+
+  useEffect(() => {
+    if (!filteredEvents.length) {
+      setSelectedYear(null);
+      return;
+    }
+    const newest = Math.max(...filteredEvents.map((ev) => new Date(ev.date).getFullYear()));
+    setSelectedYear((prev) => (prev && availableYears.includes(prev) ? prev : newest));
+  }, [filteredEvents, availableYears]);
 
   // Fetch location for hovered event (matches Global Context Map behavior)
   useEffect(() => {
@@ -252,41 +273,25 @@ const EventExplorer: React.FC = () => {
             ))}
           </select>
           
-          <button
-            onClick={handleGoBack5Years}
-            disabled={loading}
+          <select
+            value={selectedYear ?? ''}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            disabled={loading || availableYears.length === 0}
             style={{
               padding: '4px 8px',
               fontSize: '0.85rem',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              backgroundColor: loading ? '#ccc' : '#64748b',
-              color: 'white',
-              border: 'none',
               borderRadius: '4px',
+              border: '1px solid #ccc',
+              backgroundColor: 'white',
+              minWidth: '120px',
+              cursor: loading ? 'not-allowed' : 'pointer'
             }}
           >
-            ◀
-          </button>
-          
-          <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#1a1f3a', minWidth: '80px', textAlign: 'center' }}>
-            {getYearRangeLabel()}
-          </div>
-          
-          <button
-            onClick={handleGoForward5Years}
-            disabled={loading || yearsBack === 0}
-            style={{
-              padding: '4px 8px',
-              fontSize: '0.85rem',
-              cursor: (loading || yearsBack === 0) ? 'not-allowed' : 'pointer',
-              backgroundColor: (loading || yearsBack === 0) ? '#ccc' : '#64748b',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-            }}
-          >
-            ▶
-          </button>
+            {availableYears.length === 0 && <option value="">No years</option>}
+            {availableYears.map((yr) => (
+              <option key={yr} value={yr}>{yr}</option>
+            ))}
+          </select>
           
           <button 
             onClick={handleLoadClick}
@@ -320,13 +325,13 @@ const EventExplorer: React.FC = () => {
         <div className="timeline-message">No data loaded</div>
       )}
       
-      {fireHistory && filteredEvents.length === 0 && (
+      {fireHistory && yearFilteredEvents.length === 0 && (
         <div className="timeline-message">
           ✅ No fires found ({fireHistory.period_start} to {fireHistory.period_end})
         </div>
       )}
       
-      {fireHistory && filteredEvents.length > 0 && (
+      {fireHistory && yearFilteredEvents.length > 0 && (
         <>
           <div className="timeline-scroll">
             <div className="timeline-track">
