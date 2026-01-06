@@ -165,6 +165,26 @@ const EventExplorer: React.FC = () => {
     return filteredEvents.filter((ev) => new Date(ev.date).getFullYear() === selectedYear);
   }, [filteredEvents, selectedYear]);
 
+  const frpScale = useMemo(() => {
+    if (!yearFilteredEvents.length) return { min: 0, max: 0 };
+    const values = yearFilteredEvents.map((ev) => Math.max(ev.fire_radiative_power, 0));
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    return { min, max };
+  }, [yearFilteredEvents]);
+
+  const getEmojiSize = (frp: number) => {
+    const minSize = 12;
+    const maxSize = 60;
+    const min = frpScale.min;
+    const max = frpScale.max;
+    if (max <= min) return (minSize + maxSize) / 2;
+    const clamped = Math.max(frp, min);
+    const t = (clamped - min) / (max - min);
+    const eased = Math.sqrt(t); // emphasize higher FRP while keeping low values small
+    return minSize + eased * (maxSize - minSize);
+  };
+
   const monthGroups = useMemo(() => {
     if (!yearFilteredEvents.length) return [];
     const sorted = [...yearFilteredEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -345,6 +365,7 @@ const EventExplorer: React.FC = () => {
                     const isSelected = selectedFireEvent?.event_id === event.event_id;
                     const frp = event.fire_radiative_power;
                     const emoji = '🔥';
+                    const emojiSize = getEmojiSize(frp);
 
                     return (
                       <div
@@ -358,7 +379,7 @@ const EventExplorer: React.FC = () => {
                         }}
                         onMouseLeave={() => setHoverInfo(null)}
                       >
-                        <div className="timeline-event-emoji">{emoji}</div>
+                        <div className="timeline-event-emoji" style={{ fontSize: `${emojiSize}px` }}>{emoji}</div>
                         {isSelected && <div className="timeline-event-marker">📍</div>}
                       </div>
                     );
