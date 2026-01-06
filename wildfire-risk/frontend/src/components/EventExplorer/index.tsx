@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useFireHistory, useSelectedFireEvent, useLoadFireHistory, useSelectFireEvent } from "../../state/selectors";
+import { useFireHistory, useSelectedFireEvent, useLoadFireHistory, useSelectFireEvent, useSelectedRegion, useSetSelectedRegion, useSelectedYear, useSetSelectedYear } from "../../state/selectors";
+import { REGION_PRESETS } from "../../utils/regions";
 import type { FireEvent } from "../../api/types";
 
 const EventExplorer: React.FC = () => {
@@ -11,22 +12,13 @@ const EventExplorer: React.FC = () => {
   const [loadError, setLoadError] = useState(false);
   const [currentYear] = useState(new Date().getFullYear());
   const [yearsBack, setYearsBack] = useState(0);
-  const [selectedRegion, setSelectedRegion] = useState('california');
+  const selectedRegion = useSelectedRegion() || 'california';
+  const setSelectedRegion = useSetSelectedRegion();
   const [hoverInfo, setHoverInfo] = useState<{ event: FireEvent; left: number } | null>(null);
   const [hoverLocation, setHoverLocation] = useState<string>('');
   const [hoverLocationLoading, setHoverLocationLoading] = useState(false);
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
-
-  // Region definitions
-  const regions: Record<string, { name: string; lat?: number; lon?: number; radius?: number; bounds?: { latMin: number; latMax: number; lonMin: number; lonMax: number } }> = {
-    americas: { name: '🌎 Americas' },
-    northamerica: { name: '🇺🇸 North America', lat: 45, lon: -100, radius: 2500, bounds: { latMin: 5, latMax: 83, lonMin: -170, lonMax: -50 } },
-    southamerica: { name: '🇧🇷 South America', lat: -15, lon: -60, radius: 2500, bounds: { latMin: -60, latMax: 15, lonMin: -90, lonMax: -30 } },
-    amazon: { name: '🌳 Amazon Basin', lat: -5, lon: -62, radius: 1500, bounds: { latMin: -20, latMax: 10, lonMin: -75, lonMax: -45 } },
-    california: { name: '🔥 California', lat: 37, lon: -120, radius: 700, bounds: { latMin: 32, latMax: 42.5, lonMin: -125, lonMax: -114 } },
-    australia: { name: '🇦🇺 Australia', lat: -25, lon: 135, radius: 2000, bounds: { latMin: -44, latMax: -10, lonMin: 112, lonMax: 155 } },
-    canada: { name: '🇨🇦 Canada', lat: 60, lon: -110, radius: 2200, bounds: { latMin: 41, latMax: 83, lonMin: -141, lonMax: -52 } },
-  };
+  const selectedYear = useSelectedYear() ?? null;
+  const setSelectedYear = useSetSelectedYear();
 
   useEffect(() => {
     if (loadFireHistory && typeof loadFireHistory === 'function' && !fireHistory) {
@@ -63,10 +55,6 @@ const EventExplorer: React.FC = () => {
     return '#999999';
   };
 
-  const handleLoadClick = () => {
-    loadTimeRange(yearsBack);
-  };
-
   const handleGoBack5Years = () => {
     const newYearsBack = yearsBack + 1;
     setYearsBack(newYearsBack);
@@ -96,7 +84,12 @@ const EventExplorer: React.FC = () => {
       const endDateStr = endDate.toISOString().split('T')[0];
       
       // Get region parameters
-      const region = regions[regionKey];
+      const region = REGION_PRESETS[regionKey];
+      if (!region) {
+        console.warn(`Unknown region key: ${regionKey}`);
+        setLoading(false);
+        return;
+      }
       const lat = region.lat;
       const lon = region.lon;
       const radius = region.radius;
@@ -115,7 +108,9 @@ const EventExplorer: React.FC = () => {
 
   const handleRegionChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const newRegion = event.target.value;
-    setSelectedRegion(newRegion);
+    if (setSelectedRegion) {
+      setSelectedRegion(newRegion);
+    }
     // Reload data with new region
     loadTimeRange(yearsBack, newRegion);
   };
@@ -138,7 +133,7 @@ const EventExplorer: React.FC = () => {
 
   const filteredEvents = useMemo(() => {
     if (!fireHistory) return [];
-    const region = regions[selectedRegion];
+    const region = REGION_PRESETS[selectedRegion];
     if (!region) return fireHistory.events;
 
     // If we have bounds, use them for a tighter geographic filter; otherwise fall back to radius.
@@ -213,11 +208,11 @@ const EventExplorer: React.FC = () => {
 
   useEffect(() => {
     if (!filteredEvents.length) {
-      setSelectedYear(null);
+      if (setSelectedYear) setSelectedYear(null);
       return;
     }
     const newest = Math.max(...filteredEvents.map((ev) => new Date(ev.date).getFullYear()));
-    setSelectedYear((prev) => (prev && availableYears.includes(prev) ? prev : newest));
+    if (setSelectedYear) setSelectedYear((selectedYear && availableYears.includes(selectedYear)) ? selectedYear : newest);
   }, [filteredEvents, availableYears]);
 
   // Fetch location for hovered event (matches Global Context Map behavior)
@@ -286,7 +281,7 @@ const EventExplorer: React.FC = () => {
               cursor: 'pointer'
             }}
           >
-            {Object.entries(regions).map(([key, region]) => (
+            {Object.entries(REGION_PRESETS).map(([key, region]) => (
               <option key={key} value={key}>
                 {region.name}
               </option>
@@ -295,7 +290,7 @@ const EventExplorer: React.FC = () => {
           
           <select
             value={selectedYear ?? ''}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            onChange={(e) => setSelectedYear && setSelectedYear(Number(e.target.value))}
             disabled={loading || availableYears.length === 0}
             style={{
               padding: '4px 8px',
@@ -312,22 +307,6 @@ const EventExplorer: React.FC = () => {
               <option key={yr} value={yr}>{yr}</option>
             ))}
           </select>
-          
-          <button 
-            onClick={handleLoadClick}
-            disabled={loading}
-            style={{
-              padding: '4px 8px',
-              fontSize: '0.85rem',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              backgroundColor: loading ? '#ccc' : '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-            }}
-          >
-            🔄
-          </button>
         </div>
       </div>
       

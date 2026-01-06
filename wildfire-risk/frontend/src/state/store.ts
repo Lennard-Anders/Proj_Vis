@@ -14,12 +14,16 @@ export interface TriViewState {
   aiRiskPrediction?: AIRiskPrediction;
   aiRiskConfidencePercent?: number | null;
   aiRiskGrid?: AIRiskGridResponse;
+  selectedRegion: string;
+  selectedYear?: number | null;
   selectedScenario: "observed" | "counterfactual" | "variant";
   selectedDate: string;
   bbox?: { min_lat: number; max_lat: number; min_lon: number; max_lon: number };
   loading: boolean;
   mapViewState: { longitude: number; latitude: number; zoom: number; pitch: number; bearing: number };
   clickedLocation?: { lat: number; lon: number };
+  setSelectedRegion: (regionKey: string) => void;
+  setSelectedYear: (year: number | null) => void;
   initialize: () => Promise<void>;
   setScenario: (scenario: TriViewState["selectedScenario"]) => void;
   runWhatIf: (overrides: Record<string, number>) => Promise<void>;
@@ -61,6 +65,8 @@ const storageFactory = () => {
 const creator = (set: SetState): TriViewState => ({
   selectedScenario: "observed",
   selectedDate: new Date().toISOString().slice(0, 10),
+  selectedRegion: "california",
+  selectedYear: null,
   loading: false,
   mapViewState: {
     longitude: -100,
@@ -87,6 +93,8 @@ const creator = (set: SetState): TriViewState => ({
   },
   setScenario: (selectedScenario: TriViewState["selectedScenario"]) =>
     set({ selectedScenario }),
+  setSelectedRegion: (regionKey: string) => set({ selectedRegion: regionKey }),
+  setSelectedYear: (year: number | null) => set({ selectedYear: year }),
   runWhatIf: async (overrides: Record<string, number>) => {
     set({ loading: true });
     try {

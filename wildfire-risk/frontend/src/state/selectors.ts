@@ -6,6 +6,14 @@ export const useExplanation = () =>
 export const useFrames = () => useTriViewState((state: TriViewState) => state.frames);
 export const useScenario = () =>
 	useTriViewState((state: TriViewState) => state.selectedScenario);
+export const useSelectedRegion = () =>
+	useTriViewState((state: TriViewState) => state.selectedRegion);
+export const useSetSelectedRegion = () =>
+	useTriViewState((state: TriViewState) => state.setSelectedRegion);
+export const useSelectedYear = () =>
+	useTriViewState((state: TriViewState) => state.selectedYear);
+export const useSetSelectedYear = () =>
+	useTriViewState((state: TriViewState) => state.setSelectedYear);
 export const useLoading = () => useTriViewState((state: TriViewState) => state.loading);
 export const useFireHistory = () => useTriViewState((state: TriViewState) => state.fireHistory);
 export const useSelectedFireEvent = () => useTriViewState((state: TriViewState) => state.selectedFireEvent);

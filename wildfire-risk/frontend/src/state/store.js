@@ -18,6 +18,8 @@ const storageFactory = () => {
 };
 const creator = (set) => ({
     selectedScenario: "observed",
+    selectedRegion: "california",
+    selectedYear: null,
     loading: false,
     mapViewState: {
         longitude: 0,
@@ -27,10 +29,13 @@ const creator = (set) => ({
         bearing: 0,
     },
     clickedLocation: undefined,
+    setSelectedRegion: (regionKey) => set({ selectedRegion: regionKey }),
     setMapViewState: (viewState) => set({ mapViewState: viewState }),
     setClickedLocation: (coords) => {
         set({ clickedLocation: coords });
     },
+    setSelectedRegion: (regionKey) => set({ selectedRegion: regionKey }),
+    setSelectedYear: (year) => set({ selectedYear: year }),
     initialize: async () => {
         set({ loading: true });
         try {
