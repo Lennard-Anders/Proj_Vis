@@ -125,7 +125,6 @@ const EventExplorer: React.FC = () => {
     return `${startYear}-${endYear}`;
   };
 
-
   const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const toRad = (deg: number) => (deg * Math.PI) / 180;
     const R = 6371; // Earth radius in km
@@ -159,6 +158,26 @@ const EventExplorer: React.FC = () => {
 
     return fireHistory.events;
   }, [fireHistory, selectedRegion]);
+
+  const monthGroups = useMemo(() => {
+    if (!filteredEvents.length) return [];
+    const sorted = [...filteredEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const groups: Array<{ key: string; label: string; events: FireEvent[] }> = [];
+
+    sorted.forEach((ev) => {
+      const d = new Date(ev.date);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      const label = d.toLocaleString('en-US', { month: 'short' });
+      const current = groups[groups.length - 1];
+      if (current && current.key === key) {
+        current.events.push(ev);
+      } else {
+        groups.push({ key, label, events: [ev] });
+      }
+    });
+
+    return groups;
+  }, [filteredEvents]);
 
   // Fetch location for hovered event (matches Global Context Map behavior)
   useEffect(() => {
@@ -311,30 +330,36 @@ const EventExplorer: React.FC = () => {
         <>
           <div className="timeline-scroll">
             <div className="timeline-track">
-              {filteredEvents
-                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                .map((event) => {
-                  const isSelected = selectedFireEvent?.event_id === event.event_id;
-                  const frp = event.fire_radiative_power;
-                  const emoji = '🔥';
-                  
-                  return (
-                    <div
-                      key={event.event_id}
-                      className={`timeline-event ${isSelected ? 'timeline-event--selected' : ''}`}
-                      onClick={() => handleEventClick(event)}
-                      onMouseEnter={(e) => {
-                        const target = e.currentTarget;
-                        const left = target.offsetLeft + target.offsetWidth / 2;
-                        setHoverInfo({ event, left });
-                      }}
-                      onMouseLeave={() => setHoverInfo(null)}
-                    >
-                      <div className="timeline-event-emoji">{emoji}</div>
-                      {isSelected && <div className="timeline-event-marker">📍</div>}
-                    </div>
-                  );
-                })}
+              {monthGroups.map((group, groupIndex) => (
+                <div
+                  key={`month-group-${group.key}`}
+                  className={`timeline-month-group ${groupIndex === 0 ? 'timeline-month-group--first' : ''}`}
+                  style={{ flex: group.events.length || 1 }}
+                >
+                  {group.events.map((event) => {
+                    const isSelected = selectedFireEvent?.event_id === event.event_id;
+                    const frp = event.fire_radiative_power;
+                    const emoji = '🔥';
+
+                    return (
+                      <div
+                        key={event.event_id}
+                        className={`timeline-event ${isSelected ? 'timeline-event--selected' : ''}`}
+                        onClick={() => handleEventClick(event)}
+                        onMouseEnter={(e) => {
+                          const target = e.currentTarget;
+                          const left = target.offsetLeft + target.offsetWidth / 2;
+                          setHoverInfo({ event, left });
+                        }}
+                        onMouseLeave={() => setHoverInfo(null)}
+                      >
+                        <div className="timeline-event-emoji">{emoji}</div>
+                        {isSelected && <div className="timeline-event-marker">📍</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
               {hoverInfo && (
                 <div className="timeline-tooltip" style={{ left: hoverInfo.left }}>
                   <div className="timeline-tooltip__row">📍 {hoverLocationLoading ? 'Loading...' : hoverLocation || 'Unknown location'}</div>
@@ -344,6 +369,19 @@ const EventExplorer: React.FC = () => {
                 </div>
               )}
             </div>
+            {monthGroups.length > 0 && (
+              <div className="timeline-months-overlay">
+                {monthGroups.map((group, idx) => (
+                  <div
+                    key={`label-${group.key}`}
+                    className={`timeline-months-segment ${idx === 0 ? 'timeline-months-segment--first' : ''}`}
+                    style={{ flex: group.events.length || 1 }}
+                  >
+                    <div className="timeline-months-segment__label">{group.label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           
           {selectedFireEvent && (
