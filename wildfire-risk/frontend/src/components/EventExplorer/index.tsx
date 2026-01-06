@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useFireHistory, useSelectedFireEvent, useLoadFireHistory, useSelectFireEvent } from "../../state/selectors";
 import type { FireEvent } from "../../api/types";
 
@@ -12,16 +12,19 @@ const EventExplorer: React.FC = () => {
   const [currentYear] = useState(new Date().getFullYear());
   const [yearsBack, setYearsBack] = useState(0);
   const [selectedRegion, setSelectedRegion] = useState('california');
+  const [hoverInfo, setHoverInfo] = useState<{ event: FireEvent; left: number } | null>(null);
+  const [hoverLocation, setHoverLocation] = useState<string>('');
+  const [hoverLocationLoading, setHoverLocationLoading] = useState(false);
 
   // Region definitions
-  const regions: Record<string, { name: string; lat?: number; lon?: number; radius?: number }> = {
+  const regions: Record<string, { name: string; lat?: number; lon?: number; radius?: number; bounds?: { latMin: number; latMax: number; lonMin: number; lonMax: number } }> = {
     americas: { name: '🌎 Americas' },
-    northamerica: { name: '🇺🇸 North America', lat: 45, lon: -100, radius: 2500 },
-    southamerica: { name: '🇧🇷 South America', lat: -15, lon: -60, radius: 2500 },
-    amazon: { name: '🌳 Amazon Basin', lat: -5, lon: -62, radius: 1500 },
-    california: { name: '🔥 California', lat: 37, lon: -120, radius: 500 },
-    australia: { name: '🇦🇺 Australia', lat: -25, lon: 135, radius: 2000 },
-    canada: { name: '🇨🇦 Canada', lat: 60, lon: -110, radius: 2000 },
+    northamerica: { name: '🇺🇸 North America', lat: 45, lon: -100, radius: 2500, bounds: { latMin: 5, latMax: 83, lonMin: -170, lonMax: -50 } },
+    southamerica: { name: '🇧🇷 South America', lat: -15, lon: -60, radius: 2500, bounds: { latMin: -60, latMax: 15, lonMin: -90, lonMax: -30 } },
+    amazon: { name: '🌳 Amazon Basin', lat: -5, lon: -62, radius: 1500, bounds: { latMin: -20, latMax: 10, lonMin: -75, lonMax: -45 } },
+    california: { name: '🔥 California', lat: 37, lon: -120, radius: 700, bounds: { latMin: 32, latMax: 42.5, lonMin: -125, lonMax: -114 } },
+    australia: { name: '🇦🇺 Australia', lat: -25, lon: 135, radius: 2000, bounds: { latMin: -44, latMax: -10, lonMin: 112, lonMax: 155 } },
+    canada: { name: '🇨🇦 Canada', lat: 60, lon: -110, radius: 2200, bounds: { latMin: 41, latMax: 83, lonMin: -141, lonMax: -52 } },
   };
 
   useEffect(() => {
@@ -77,7 +80,7 @@ const EventExplorer: React.FC = () => {
     }
   };
 
-  const loadTimeRange = (yearsBackValue: number) => {
+  const loadTimeRange = (yearsBackValue: number, regionKey: string = selectedRegion) => {
     if (loadFireHistory && typeof loadFireHistory === 'function') {
       setLoading(true);
       setLoadError(false);
@@ -92,7 +95,7 @@ const EventExplorer: React.FC = () => {
       const endDateStr = endDate.toISOString().split('T')[0];
       
       // Get region parameters
-      const region = regions[selectedRegion];
+      const region = regions[regionKey];
       const lat = region.lat;
       const lon = region.lon;
       const radius = region.radius;
@@ -110,9 +113,10 @@ const EventExplorer: React.FC = () => {
   };
 
   const handleRegionChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedRegion(event.target.value);
+    const newRegion = event.target.value;
+    setSelectedRegion(newRegion);
     // Reload data with new region
-    loadTimeRange(yearsBack);
+    loadTimeRange(yearsBack, newRegion);
   };
 
   const getYearRangeLabel = () => {
@@ -120,6 +124,80 @@ const EventExplorer: React.FC = () => {
     const startYear = endYear - 5;
     return `${startYear}-${endYear}`;
   };
+
+
+  const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const R = 6371; // Earth radius in km
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  const filteredEvents = useMemo(() => {
+    if (!fireHistory) return [];
+    const region = regions[selectedRegion];
+    if (!region) return fireHistory.events;
+
+    // If we have bounds, use them for a tighter geographic filter; otherwise fall back to radius.
+    if (region.bounds) {
+      const { latMin, latMax, lonMin, lonMax } = region.bounds;
+      return fireHistory.events.filter((event) => (
+        event.latitude >= latMin && event.latitude <= latMax &&
+        event.longitude >= lonMin && event.longitude <= lonMax
+      ));
+    }
+
+    if (region.lat !== undefined && region.lon !== undefined && region.radius !== undefined) {
+      return fireHistory.events.filter((event) => {
+        const distance = calculateDistanceKm(region.lat!, region.lon!, event.latitude, event.longitude);
+        return distance <= region.radius!;
+      });
+    }
+
+    return fireHistory.events;
+  }, [fireHistory, selectedRegion]);
+
+  // Fetch location for hovered event (matches Global Context Map behavior)
+  useEffect(() => {
+    if (!hoverInfo?.event) {
+      setHoverLocation('');
+      setHoverLocationLoading(false);
+      return;
+    }
+
+    const { latitude, longitude } = hoverInfo.event;
+    let cancelled = false;
+    setHoverLocationLoading(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=5&addressdetails=1`,
+          { headers: { 'User-Agent': 'WildfireRiskExplorer/1.0' } }
+        );
+        const data = await response.json();
+        const address = data.address || {};
+        const parts: string[] = [];
+        if (address.state || address.region) parts.push(address.state || address.region);
+        if (address.country) parts.push(address.country);
+        const name = parts.length > 0 ? parts.join(', ') : 'Unknown location';
+        if (!cancelled) setHoverLocation(name);
+      } catch (error) {
+        console.error('Failed to fetch location:', error);
+        if (!cancelled) setHoverLocation('Unknown location');
+      } finally {
+        if (!cancelled) setHoverLocationLoading(false);
+      }
+    }, 200);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [hoverInfo?.event]);
 
   return (
     <div className="timeline-wrapper">
@@ -223,40 +301,48 @@ const EventExplorer: React.FC = () => {
         <div className="timeline-message">No data loaded</div>
       )}
       
-      {fireHistory && fireHistory.events.length === 0 && (
+      {fireHistory && filteredEvents.length === 0 && (
         <div className="timeline-message">
           ✅ No fires found ({fireHistory.period_start} to {fireHistory.period_end})
         </div>
       )}
       
-      {fireHistory && fireHistory.events.length > 0 && (
+      {fireHistory && filteredEvents.length > 0 && (
         <>
-          <div className="timeline-info">
-            <span className="timeline-count">{fireHistory.total_events} fire{fireHistory.total_events !== 1 ? 's' : ''}</span>
-            <span className="timeline-period">{fireHistory.period_start} → {fireHistory.period_end}</span>
-          </div>
-          
           <div className="timeline-scroll">
             <div className="timeline-track">
-              {fireHistory.events
+              {filteredEvents
                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
                 .map((event) => {
                   const isSelected = selectedFireEvent?.event_id === event.event_id;
                   const frp = event.fire_radiative_power;
-                  const emoji = frp > 100 ? '🔴' : frp > 50 ? '🟠' : '🟡';
+                  const emoji = '🔥';
                   
                   return (
                     <div
                       key={event.event_id}
                       className={`timeline-event ${isSelected ? 'timeline-event--selected' : ''}`}
                       onClick={() => handleEventClick(event)}
-                      title={`${formatDate(event.date)}\n${event.latitude.toFixed(3)}°, ${event.longitude.toFixed(3)}°\nFRP: ${frp.toFixed(1)} MW\nConfidence: ${event.confidence}%`}
+                      onMouseEnter={(e) => {
+                        const target = e.currentTarget;
+                        const left = target.offsetLeft + target.offsetWidth / 2;
+                        setHoverInfo({ event, left });
+                      }}
+                      onMouseLeave={() => setHoverInfo(null)}
                     >
                       <div className="timeline-event-emoji">{emoji}</div>
                       {isSelected && <div className="timeline-event-marker">📍</div>}
                     </div>
                   );
                 })}
+              {hoverInfo && (
+                <div className="timeline-tooltip" style={{ left: hoverInfo.left }}>
+                  <div className="timeline-tooltip__row">📍 {hoverLocationLoading ? 'Loading...' : hoverLocation || 'Unknown location'}</div>
+                  <div className="timeline-tooltip__row">📅 {formatDate(hoverInfo.event.date)}</div>
+                  <div className="timeline-tooltip__row">🔥 FRP: {hoverInfo.event.fire_radiative_power.toFixed(1)} MW</div>
+                  <div className="timeline-tooltip__row">✅ Confidence: {hoverInfo.event.confidence}%</div>
+                </div>
+              )}
             </div>
           </div>
           

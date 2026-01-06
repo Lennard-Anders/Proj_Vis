@@ -672,6 +672,9 @@ li:hover {
   margin-bottom: var(--spacing-md);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(255, 107, 53, 0.2);
+  position: relative;
+  overflow: visible;
+  z-index: 5;
 }
 
 .timeline-controls {
@@ -711,11 +714,13 @@ li:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-sm);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  background: rgba(255, 107, 53, 0.08);
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  background: rgba(255, 107, 53, 0.06);
   border-radius: 6px;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
+  position: relative;
+  z-index: 1;
 }
 
 .timeline-count {
@@ -731,11 +736,12 @@ li:hover {
 .timeline-scroll {
   position: relative;
   overflow-x: auto;
-  overflow-y: hidden;
-  padding: var(--spacing-md) 0;
+  overflow-y: visible;
+  padding: 96px 0 32px 0;
   margin: 0 calc(-1 * var(--spacing-md));
   padding-left: var(--spacing-md);
   padding-right: var(--spacing-md);
+  margin-top: 4px;
 }
 
 .timeline-scroll::-webkit-scrollbar {
@@ -791,6 +797,46 @@ li:hover {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
   transition: all 0.3s ease;
 }
+
+.timeline-tooltip {
+  position: absolute;
+  top: -90px;
+  transform: translateX(-50%);
+  background: #0f172a;
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  min-width: 180px;
+  max-width: 220px;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.timeline-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 8px 8px 0 8px;
+  border-style: solid;
+  border-color: #0f172a transparent transparent transparent;
+}
+
+.timeline-tooltip__title {
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #38bdf8;
+  font-size: 0.9rem;
+}
+
+.timeline-tooltip__row {
+  font-size: 0.85rem;
+  line-height: 1.3;
+  color: #e2e8f0;
+}
+
 
 .timeline-event:hover .timeline-event-emoji {
   transform: scale(1.3);
