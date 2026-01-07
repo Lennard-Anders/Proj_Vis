@@ -805,13 +805,6 @@ li:hover {
   padding-left: 0;
 }
 
-.timeline-day-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
 .timeline-month-group--first {
   border-left: none;
   padding-left: 0;
