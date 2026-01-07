@@ -19,6 +19,7 @@ const EventExplorer: React.FC = () => {
   const [hoverLocationLoading, setHoverLocationLoading] = useState(false);
   const selectedYear = useSelectedYear() ?? null;
   const setSelectedYear = useSetSelectedYear();
+  const [showInfoTooltip, setShowInfoTooltip] = useState(false);
 
   useEffect(() => {
     if (loadFireHistory && typeof loadFireHistory === 'function' && !fireHistory) {
@@ -323,6 +324,65 @@ const EventExplorer: React.FC = () => {
             style={{ backgroundColor: getStatusColor() }}
             title={loading ? 'Loading...' : loadError ? 'Error' : fireHistory ? 'Loaded' : 'Not loaded'}
           />
+          <div style={{ position: 'relative', display: 'inline-flex' }}>
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label="Emoji size legend"
+              aria-describedby={showInfoTooltip ? 'emoji-size-tooltip' : undefined}
+              onMouseEnter={() => setShowInfoTooltip(true)}
+              onMouseLeave={() => setShowInfoTooltip(false)}
+              onFocus={() => setShowInfoTooltip(true)}
+              onBlur={() => setShowInfoTooltip(false)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setShowInfoTooltip((v) => !v);
+                }
+              }}
+              style={{
+                marginLeft: '4px',
+                display: 'inline-flex',
+                width: '18px',
+                height: '18px',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid #888',
+                borderRadius: '50%',
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#555',
+                backgroundColor: '#fff',
+                cursor: 'default',
+                userSelect: 'none',
+                outline: 'none'
+              }}
+            >
+              i
+            </span>
+            {showInfoTooltip && (
+              <div
+                id="emoji-size-tooltip"
+                role="tooltip"
+                style={{
+                  position: 'absolute',
+                  top: '22px',
+                  left: '-4px',
+                  backgroundColor: '#fff',
+                  color: '#333',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  padding: '6px 8px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  fontSize: '0.8rem',
+                  whiteSpace: 'nowrap',
+                  zIndex: 10
+                }}
+              >
+                Fire emoji size indicates fire intensity (FRP). Larger = higher FRP.
+              </div>
+            )}
+          </div>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -429,6 +489,7 @@ const EventExplorer: React.FC = () => {
                   <div className="timeline-tooltip__row">📅 {formatDate(hoverInfo.event.date)}</div>
                   <div className="timeline-tooltip__row">🔥 FRP: {hoverInfo.event.fire_radiative_power.toFixed(1)} MW</div>
                   <div className="timeline-tooltip__row">✅ Confidence: {hoverInfo.event.confidence}%</div>
+                  <div className="timeline-tooltip__row">ℹ️ Icon size scales with FRP (higher = bigger)</div>
                 </div>
               )}
             </div>
