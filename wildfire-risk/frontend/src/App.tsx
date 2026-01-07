@@ -7,6 +7,8 @@ import EventExplorer from "./components/EventExplorer";
 import WorldMap from "./components/WorldMap";
 import FireHistoryHistogram from "./components/FireHistoryHistogram";
 import { useTriViewState, TriViewState } from "./state/store";
+import FireHistoryGlossaryCard from "./components/FireHistoryGlossaryCard";
+
 
 const App: React.FC = () => {
   const [isLeftVisible, setIsLeftVisible] = useState(false);
@@ -63,7 +65,10 @@ const App: React.FC = () => {
         <section className="app-main__right">
           <div className="fire-history-card panel">
             <div className="fire-history-card__header">
-              <h2>Fire History</h2>
+               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <h2 style={{ margin: 0 }}>Fire History</h2>
+                <FireHistoryGlossaryCard />
+               </div>
               <p>Explore historical wildfire data and trends.</p>
             </div>
             <div className="fire-history-card__body">

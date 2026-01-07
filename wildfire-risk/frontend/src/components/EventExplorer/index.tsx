@@ -3,6 +3,7 @@ import { useFireHistory, useSelectedFireEvent, useLoadFireHistory, useSelectFire
 import { REGION_PRESETS } from "../../utils/regions";
 import type { FireEvent } from "../../api/types";
 
+
 const EventExplorer: React.FC = () => {
   const fireHistory = useFireHistory();
   const selectedFireEvent = useSelectedFireEvent();
