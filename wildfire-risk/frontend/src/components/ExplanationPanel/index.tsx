@@ -2,6 +2,16 @@ import React from "react";
 import type { ExplainResponse } from "../../api/types";
 import { useExplanation } from "../../state/selectors";
 import { useTriViewState, TriViewState } from "../../state/store";
+import InfoPopover from "../InfoPopover";
+
+const EXPLANATION_INFO = {
+  description:
+    "Explains the AI prediction at the selected location, including risk level, key drivers, and recommendations. If AI output is unavailable, shows the LLM assessment.",
+  abbreviations: [
+    { term: "AI", meaning: "Artificial Intelligence model output." },
+    { term: "LLM", meaning: "Large Language Model narrative." },
+  ],
+};
 
 const ExplanationPanel: React.FC = () => {
   const explanation = useExplanation();
@@ -25,7 +35,13 @@ const ExplanationPanel: React.FC = () => {
     
     return (
       <div className="panel">
-        <h2>🤖 AI Risk Explanation</h2>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "var(--spacing-md)" }}>
+          <h2 style={{ margin: 0 }}>🤖 AI Risk Explanation</h2>
+          <InfoPopover
+            description={EXPLANATION_INFO.description}
+            abbreviations={EXPLANATION_INFO.abbreviations}
+          />
+        </div>
         
         {/* Risk Level Display */}
         <div style={{
@@ -170,7 +186,13 @@ const ExplanationPanel: React.FC = () => {
     const { wildfire_probability_percent, explanation: llmText } = wildfireLlmExplanation;
     return (
       <div className="panel">
-        <h2>🧠 LLM Wildfire Assessment</h2>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "var(--spacing-md)" }}>
+          <h2 style={{ margin: 0 }}>🧠 LLM Wildfire Assessment</h2>
+          <InfoPopover
+            description={EXPLANATION_INFO.description}
+            abbreviations={EXPLANATION_INFO.abbreviations}
+          />
+        </div>
         <div style={{
           padding: 'var(--spacing-md)',
           background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',

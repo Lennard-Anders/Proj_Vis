@@ -308,6 +308,79 @@ body {
   font-weight: 600;
 }
 
+.info-popover {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.info-popover__button {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 0, 0, 0.5);
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 800;
+  line-height: 1;
+  user-select: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.info-popover__button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px -6px rgba(255, 0, 0, 0.35);
+}
+
+.info-popover__icon {
+  color: #ef4444;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.info-popover__panel {
+  position: absolute;
+  top: 34px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #ffffff;
+  box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.25);
+  z-index: 999;
+  max-width: 90vw;
+}
+
+.info-popover__title {
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+
+.info-popover__subtitle {
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+
+.info-popover__desc {
+  margin: 0 0 8px 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.info-popover__list {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.45;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
 .maps-container {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -2,6 +2,18 @@ import React, { useEffect, useState } from "react";
 import { useFireHistory, useSelectFireEvent, useSelectedRegion, useSelectedYear } from "../state/selectors";
 import type { FireEvent } from "../api/types";
 import { REGION_PRESETS } from "../utils/regions";
+import InfoPopover from "./InfoPopover";
+
+const FIRE_HISTORY_DISTRIBUTION_INFO = {
+  description:
+    "Monthly distribution of fires for the selected region and year. Click a bar to list the events in that month.",
+  abbreviations: [
+    { term: "FRP", meaning: "Fire Radiative Power (intensity proxy)." },
+    { term: "MW", meaning: "Megawatts (unit for FRP)." },
+    { term: "km²", meaning: "Square kilometers (burned area)." },
+    { term: "K", meaning: "Kelvin (brightness temperature)." },
+  ],
+};
 
 interface HistogramData {
   label: string;
@@ -362,7 +374,13 @@ const FireHistoryHistogram: React.FC = () => {
         gap: 'var(--spacing-sm)',
         marginBottom: 'var(--spacing-sm)'
       }}>
-        <h3 style={{ margin: 0 }}>📊 Fire History Distribution</h3>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <h3 style={{ margin: 0 }}>📊 Fire History Distribution</h3>
+          <InfoPopover
+            description={FIRE_HISTORY_DISTRIBUTION_INFO.description}
+            abbreviations={FIRE_HISTORY_DISTRIBUTION_INFO.abbreviations}
+          />
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Region:</span>

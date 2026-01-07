@@ -5,6 +5,7 @@ import { BitmapLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { useMapViewState, useSetMapViewState, useFireHistory, useSelectedFireEvent } from "../../state/selectors";
 import { useTriViewState, TriViewState } from "../../state/store";
 import type { FireEvent } from "../../api/types";
+import InfoPopover from "../InfoPopover";
 
 const WorldMap: React.FC = () => {
   const mapViewState = useMapViewState();
@@ -136,7 +137,16 @@ const WorldMap: React.FC = () => {
 
   return (
     <div className="panel">
-      <h2>🌍 Global Context Map</h2>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "var(--spacing-md)" }}>
+        <h2 style={{ margin: 0 }}>🌍 Global Context Map</h2>
+        <InfoPopover
+          description="Global map of historical fire detections. Hover a marker to see event details."
+          abbreviations={[
+            { term: "FRP", meaning: "Fire Radiative Power (intensity proxy)." },
+            { term: "MW", meaning: "Megawatts (unit for FRP)." },
+          ]}
+        />
+      </div>
       <div className="world-map__container" style={{ position: 'relative' }}>
         <DeckGL
           style={{ width: '100%', height: '100%' }}

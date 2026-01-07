@@ -11,6 +11,7 @@ import { useTriViewState, TriViewState } from "../../state/store";
 import MapHeatmap from "../MapHeatmap";
 import MapLegend from "../MapLegend";
 import TimeScrubber from "../TimeScrubber";
+import InfoPopover from "../InfoPopover";
 
 interface TemperaturePoint {
   latitude: number;
@@ -432,7 +433,17 @@ const TriView: React.FC = () => {
     <div className="panel" aria-busy={loading}>
       <div style={{ marginBottom: 'var(--spacing-md)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <h2>🗺️ Wildfire Risk Visualization</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <h2 style={{ margin: 0 }}>🗺️ Wildfire Risk Visualization</h2>
+            <InfoPopover
+              description="Interactive scenario map with risk grid cells and optional weather layers. Click the map to set the What-If location."
+              abbreviations={[
+                { term: "AI", meaning: "Artificial Intelligence risk layer." },
+                { term: "Temp", meaning: "Temperature layer." },
+                { term: "FRP", meaning: "Fire Radiative Power (intensity proxy)." },
+              ]}
+            />
+          </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button 
               onClick={() => setShowTempLayer(!showTempLayer)}

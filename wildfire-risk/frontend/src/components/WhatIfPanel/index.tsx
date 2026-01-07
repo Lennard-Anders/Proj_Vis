@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { runCounterfactual, fetchWildfireRiskLLM, fetchWildfireModels, fetchAIRiskConfidence } from "../../api/client";
 import { useTriViewState, TriViewState } from "../../state/store";
 import { PARAM_LABELS, PARAM_HELP } from "../../ui/labels";
+import InfoPopover from "../InfoPopover";
 
 const defaultOverrides = {
   temperature: 24,
@@ -53,6 +54,18 @@ type SliderThumbStyle = React.CSSProperties & {
   "--thumb-emoji"?: string;
 };
 
+const WHAT_IF_INFO = {
+  description:
+    "Adjust weather inputs and location to run an AI wildfire risk prediction for a single point. Results include probability, confidence, and an LLM explanation.",
+  abbreviations: [
+    { term: "AI", meaning: "Artificial Intelligence risk model." },
+    { term: "LLM", meaning: "Large Language Model explanation." },
+    { term: "RH", meaning: "Relative humidity (%)." },
+    { term: "°C", meaning: "Degrees Celsius (temperature)." },
+    { term: "m/s", meaning: "Meters per second (wind speed)." },
+    { term: "mm", meaning: "Millimeters of rain (last 24h)." },
+  ],
+};
 
 const WhatIfPanel: React.FC = () => {
   const [overrides, setOverrides] = useState<Record<string, number>>(defaultOverrides);
@@ -250,7 +263,13 @@ const WhatIfPanel: React.FC = () => {
 
   return (
     <div className="panel">
-      <h2>🌡️ What-If Risk Analysis</h2>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "var(--spacing-md)" }}>
+        <h2 style={{ margin: 0 }}>🌡️ What-If Risk Analysis</h2>
+        <InfoPopover
+          description={WHAT_IF_INFO.description}
+          abbreviations={WHAT_IF_INFO.abbreviations}
+        />
+      </div>
       <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-md)' }}>
         Adjust weather parameters to predict wildfire risk using AI
       </p>

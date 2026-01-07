@@ -2,6 +2,17 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useFireHistory, useSelectedFireEvent, useLoadFireHistory, useSelectFireEvent, useSelectedRegion, useSetSelectedRegion, useSelectedYear, useSetSelectedYear } from "../../state/selectors";
 import { REGION_PRESETS } from "../../utils/regions";
 import type { FireEvent } from "../../api/types";
+import InfoPopover from "../InfoPopover";
+
+const EVENT_EXPLORER_INFO = {
+  description:
+    "Timeline of fire events for the selected region and year. Emoji size encodes intensity; click an event to highlight it on the maps.",
+  abbreviations: [
+    { term: "FRP", meaning: "Fire Radiative Power (intensity proxy)." },
+    { term: "MW", meaning: "Megawatts (unit for FRP)." },
+    { term: "km²", meaning: "Square kilometers (burned area)." },
+  ],
+};
 
 
 const EventExplorer: React.FC = () => {
@@ -327,6 +338,10 @@ const EventExplorer: React.FC = () => {
           <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>
             🔥 Wildfire History
           </h3>
+          <InfoPopover
+            description={EVENT_EXPLORER_INFO.description}
+            abbreviations={EVENT_EXPLORER_INFO.abbreviations}
+          />
           <span 
             className="status-indicator" 
             style={{ backgroundColor: getStatusColor() }}
