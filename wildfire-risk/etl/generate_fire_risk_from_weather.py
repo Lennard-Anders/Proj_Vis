@@ -14,45 +14,79 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def estimate_temperature(lat, lon, month):
+    """
+    Estimate temperature based on location and month.
+    Returns temperature in Celsius.
+    """
+    # Base temperature by latitude (warmer near equator)
+    base_temp = 30 - abs(lat - 25) * 0.5
+    
+    # Seasonal variation (Northern hemisphere)
+    seasonal_offset = 0
+    if month in [6, 7, 8]:  # Summer
+        seasonal_offset = 10
+    elif month in [12, 1, 2]:  # Winter
+        seasonal_offset = -10
+    elif month in [3, 4, 5]:  # Spring
+        seasonal_offset = 0
+    elif month in [9, 10, 11]:  # Fall
+        seasonal_offset = 0
+    
+    # Add random variation
+    temp = base_temp + seasonal_offset + np.random.normal(0, 5)
+    return max(10, temp)  # Minimum 10°C
+
+
 def calculate_fire_risk_score(row):
     """
     Calculate fire risk score (0-100) based on weather conditions.
     
     High risk factors:
+    - High temperature (> 30°C)
     - Low humidity (< 30%)
     - High wind speed (> 5 m/s)
     - Low precipitation (< 1mm)
     """
     risk_score = 0
     
-    # Humidity factor (0-40 points): lower = higher risk
+    # Temperature factor (0-35 points): higher = higher risk
+    temp = row.get('temperature', 20)
+    if temp > 35:
+        risk_score += 35
+    elif temp > 30:
+        risk_score += 25
+    elif temp > 25:
+        risk_score += 15
+    elif temp > 20:
+        risk_score += 5
+    
+    # Humidity factor (0-35 points): lower = higher risk
     humidity = row['humidity']
     if humidity < 20:
-        risk_score += 40
+        risk_score += 35
     elif humidity < 30:
-        risk_score += 30
+        risk_score += 25
     elif humidity < 40:
-        risk_score += 20
+        risk_score += 15
     elif humidity < 50:
-        risk_score += 10
+        risk_score += 8
     
-    # Wind factor (0-30 points): higher = higher risk
+    # Wind factor (0-20 points): higher = higher risk
     wind = row['wind_speed']
     if wind > 8:
-        risk_score += 30
-    elif wind > 6:
         risk_score += 20
+    elif wind > 6:
+        risk_score += 15
     elif wind > 4:
-        risk_score += 10
+        risk_score += 8
     
-    # Precipitation factor (0-30 points): lower = higher risk
+    # Precipitation factor (0-10 points): lower = higher risk
     precip = row['precipitation']
     if precip < 0.5:
-        risk_score += 30
-    elif precip < 1:
-        risk_score += 20
-    elif precip < 2:
         risk_score += 10
+    elif precip < 1:
+        risk_score += 5
     
     return min(risk_score, 100)
 
@@ -80,14 +114,30 @@ def main():
     weather_df = pd.read_csv(weather_file)
     logger.info(f"Loaded {len(weather_df)} weather records")
     
+    # Add random jitter to coordinates (±0.3 degrees) to break grid pattern
+    logger.info("Adding spatial variation to coordinates...")
+    np.random.seed(42)
+    weather_df['latitude'] = weather_df['latitude'] + np.random.uniform(-0.3, 0.3, len(weather_df))
+    weather_df['longitude'] = weather_df['longitude'] + np.random.uniform(-0.3, 0.3, len(weather_df))
+    
+    # Estimate temperature based on location and season
+    logger.info("Estimating temperatures...")
+    weather_df['temperature'] = weather_df.apply(
+        lambda row: estimate_temperature(row['latitude'], row['longitude'], row['month']), 
+        axis=1
+    )
+    
     # Calculate fire risk scores
     logger.info("Calculating fire risk scores...")
     weather_df['fire_risk_score'] = weather_df.apply(calculate_fire_risk_score, axis=1)
     weather_df['risk_level'], weather_df['confidence'] = zip(*weather_df['fire_risk_score'].map(classify_risk_level))
     
-    # Filter to only high-risk events (score >= 55)
-    high_risk_df = weather_df[weather_df['fire_risk_score'] >= 55].copy()
-    logger.info(f"Found {len(high_risk_df)} high-risk fire conditions")
+    # Filter to only high-risk events (score >= 60) with temperature threshold
+    high_risk_df = weather_df[
+        (weather_df['fire_risk_score'] >= 60) & 
+        (weather_df['temperature'] >= 25)  # Only when temp is high enough
+    ].copy()
+    logger.info(f"Found {len(high_risk_df)} high-risk fire conditions (score >= 60, temp >= 25°C)")
     
     # Create fire-history-like format
     logger.info("Formatting as fire event data...")
@@ -127,6 +177,7 @@ def main():
             'frp_threshold': 100,
             'risk_level': row['risk_level'],
             'fire_risk_score': risk_score,
+            'weather_temperature': row['temperature'],
             'weather_wind_speed': row['wind_speed'],
             'weather_humidity': row['humidity'],
             'weather_precipitation': row['precipitation'],
