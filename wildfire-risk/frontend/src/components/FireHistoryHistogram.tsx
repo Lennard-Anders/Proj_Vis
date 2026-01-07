@@ -20,12 +20,27 @@ const FireHistoryHistogram: React.FC = () => {
 
   useEffect(() => {
     if (!fireHistory?.events || fireHistory.events.length === 0) {
+      setHistogramData([]);
       return;
     }
 
+    // Filter events by selectedRegion and selectedYear
+    // Get region bounds from presets
+    const regionDef = REGION_PRESETS[selectedRegion];
+    const bounds = regionDef?.bounds;
+    const filteredEvents = fireHistory.events.filter(event => {
+      let regionMatch = true;
+      if (bounds) {
+        regionMatch = event.latitude >= bounds.latMin && event.latitude <= bounds.latMax &&
+                      event.longitude >= bounds.lonMin && event.longitude <= bounds.lonMax;
+      }
+      const yearMatch = selectedYear ? new Date(event.date).getFullYear() === selectedYear : true;
+      return regionMatch && yearMatch;
+    });
+
     // Group fires by month with details, using a numeric key so we can sort chronologically
     const monthGroups: Map<number, FireEvent[]> = new Map();
-    fireHistory.events.forEach(event => {
+    filteredEvents.forEach(event => {
       const date = new Date(event.date);
       const monthStartUtc = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1);
       const existing = monthGroups.get(monthStartUtc);
@@ -52,7 +67,7 @@ const FireHistoryHistogram: React.FC = () => {
       .map(({ sortKey, ...rest }) => rest);
 
     setHistogramData(data);
-  }, [fireHistory]);
+  }, [fireHistory, selectedRegion, selectedYear]);
 
   const getDateRange = () => {
     const endDate = new Date();
@@ -64,6 +79,9 @@ const FireHistoryHistogram: React.FC = () => {
   };
 
   const maxCount = histogramData.length ? Math.max(...histogramData.map(d => d.count)) : 0;
+
+  // All filtered events represented in the histogram
+  const filteredEventsAll = React.useMemo(() => histogramData.flatMap(d => d.events), [histogramData]);
 
   const yearDisplay = (() => {
     if (selectedYear !== undefined && selectedYear !== null) return selectedYear;
@@ -103,7 +121,7 @@ const FireHistoryHistogram: React.FC = () => {
           color: 'var(--text-secondary)',
           marginBottom: 'var(--spacing-md)'
         }}>
-          Total Events: <strong>{fireHistory.events.length}</strong>
+          Total Events: <strong>{filteredEventsAll.length}</strong>
         </div>
         
         {/* Histogram */}
@@ -208,21 +226,39 @@ const FireHistoryHistogram: React.FC = () => {
         }}>
           <div>
             <div style={{ color: 'var(--text-secondary)' }}>Avg FRP</div>
-            <strong>{(fireHistory.events.reduce((sum, e) => sum + e.fire_radiative_power, 0) / fireHistory.events.length).toFixed(0)} MW</strong>
+            <strong>{(
+              filteredEventsAll.length
+                ? filteredEventsAll.reduce((sum, e) => sum + e.fire_radiative_power, 0) / filteredEventsAll.length
+                : 0
+            ).toFixed(0)} MW</strong>
           </div>
           <div>
             <div style={{ color: 'var(--text-secondary)' }}>Avg Area</div>
-            <strong>{(fireHistory.events.reduce((sum, e) => sum + e.area_km2, 0) / fireHistory.events.length).toFixed(1)} km²</strong>
+            <strong>{(
+              filteredEventsAll.length
+                ? filteredEventsAll.reduce((sum, e) => sum + (e.area_km2 || 0), 0) / filteredEventsAll.length
+                : 0
+            ).toFixed(1)} km²</strong>
           </div>
           <div>
             <div style={{ color: 'var(--text-secondary)' }}>Avg Confidence</div>
-            <strong>{(fireHistory.events.reduce((sum, e) => sum + e.confidence, 0) / fireHistory.events.length).toFixed(0)}%</strong>
+            <strong>{(
+              filteredEventsAll.length
+                ? filteredEventsAll.reduce((sum, e) => sum + e.confidence, 0) / filteredEventsAll.length
+                : 0
+            ).toFixed(0)}%</strong>
           </div>
           <div>
             <div style={{ color: 'var(--text-secondary)' }}>Date Range</div>
-            <strong>
-              {new Date(Math.min(...fireHistory.events.map(e => new Date(e.date).getTime()))).toLocaleDateString('default', { month: 'short', year: 'numeric' })} - {new Date(Math.max(...fireHistory.events.map(e => new Date(e.date).getTime()))).toLocaleDateString('default', { month: 'short', year: 'numeric' })}
-            </strong>
+            <strong>{(() => {
+              if (!filteredEventsAll.length) {
+                const range = getDateRange();
+                return `${new Date(range.start).toLocaleDateString('default', { month: 'short', year: 'numeric' })} - ${new Date(range.end).toLocaleDateString('default', { month: 'short', year: 'numeric' })}`;
+              }
+              const minTs = Math.min(...filteredEventsAll.map(e => new Date(e.date).getTime()));
+              const maxTs = Math.max(...filteredEventsAll.map(e => new Date(e.date).getTime()));
+              return `${new Date(minTs).toLocaleDateString('default', { month: 'short', year: 'numeric' })} - ${new Date(maxTs).toLocaleDateString('default', { month: 'short', year: 'numeric' })}`;
+            })()}</strong>
           </div>
         </div>
 
