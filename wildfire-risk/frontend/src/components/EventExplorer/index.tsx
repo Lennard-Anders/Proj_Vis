@@ -22,7 +22,8 @@ const EventExplorer: React.FC = () => {
 
   useEffect(() => {
     if (loadFireHistory && typeof loadFireHistory === 'function' && !fireHistory) {
-      loadTimeRange(0);
+      // Initial load: fetch global dataset for the time window
+      loadTimeRange(0, undefined);
     }
   }, [loadFireHistory]);
 
@@ -69,7 +70,7 @@ const EventExplorer: React.FC = () => {
     }
   };
 
-  const loadTimeRange = (yearsBackValue: number, regionKey: string = selectedRegion) => {
+  const loadTimeRange = (yearsBackValue: number, regionKey?: string) => {
     if (loadFireHistory && typeof loadFireHistory === 'function') {
       setLoading(true);
       setLoadError(false);
@@ -83,19 +84,25 @@ const EventExplorer: React.FC = () => {
       const startDateStr = startDate.toISOString().split('T')[0];
       const endDateStr = endDate.toISOString().split('T')[0];
       
-      // Get region parameters
-      const region = REGION_PRESETS[regionKey];
-      if (!region) {
-        console.warn(`Unknown region key: ${regionKey}`);
-        setLoading(false);
-        return;
+      // If a region is provided, load around that region; otherwise, load globally.
+      let lat: number | undefined;
+      let lon: number | undefined;
+      let radius: number | undefined;
+      if (regionKey) {
+        const region = REGION_PRESETS[regionKey];
+        if (!region) {
+          console.warn(`Unknown region key: ${regionKey}`);
+          setLoading(false);
+          return;
+        }
+        lat = region.lat;
+        lon = region.lon;
+        radius = region.radius;
+        console.log(`Loading fires: ${region.name}, ${startDateStr} to ${endDateStr}`);
+      } else {
+        console.log(`Loading fires: Global (Americas), ${startDateStr} to ${endDateStr}`);
       }
-      const lat = region.lat;
-      const lon = region.lon;
-      const radius = region.radius;
-      
-      console.log(`Loading fires: ${region.name}, ${startDateStr} to ${endDateStr}`);
-      
+
       loadFireHistory(lat, lon, radius, undefined, startDateStr, endDateStr)
         .then(() => console.log('Fire history loaded'))
         .catch((error) => {
@@ -111,8 +118,7 @@ const EventExplorer: React.FC = () => {
     if (setSelectedRegion) {
       setSelectedRegion(newRegion);
     }
-    // Reload data with new region
-    loadTimeRange(yearsBack, newRegion);
+    // No reload needed; we keep a global dataset and filter client-side.
   };
 
   const getYearRangeLabel = () => {
@@ -201,10 +207,11 @@ const EventExplorer: React.FC = () => {
   }, [yearFilteredEvents]);
 
   const availableYears = useMemo(() => {
-    if (!filteredEvents.length) return [] as number[];
-    const years = Array.from(new Set(filteredEvents.map((ev) => new Date(ev.date).getFullYear())));
+    const events = fireHistory?.events || [];
+    if (!events.length) return [] as number[];
+    const years = Array.from(new Set(events.map((ev) => new Date(ev.date).getFullYear())));
     return years.sort((a, b) => b - a);
-  }, [filteredEvents]);
+  }, [fireHistory?.events]);
 
   useEffect(() => {
     if (!filteredEvents.length) {
@@ -254,6 +261,56 @@ const EventExplorer: React.FC = () => {
     };
   }, [hoverInfo?.event]);
 
+  // Compute total event counts per region strictly for the selectedYear
+  const regionCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const events = fireHistory?.events || [];
+    if (!selectedYear) {
+      // No selected year -> show 0 for all regions to avoid aggregating across years
+      Object.keys(REGION_PRESETS).forEach((key) => { counts[key] = 0; });
+      return counts;
+    }
+    const byYear = (ev: FireEvent) => new Date(ev.date).getFullYear() === selectedYear;
+
+    const calculateDistanceKmLocal = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+      const toRad = (deg: number) => (deg * Math.PI) / 180;
+      const R = 6371;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
+
+    Object.entries(REGION_PRESETS).forEach(([key, region]) => {
+      let regionEvents: FireEvent[] = [];
+      if (region.bounds) {
+        const { latMin, latMax, lonMin, lonMax } = region.bounds;
+        regionEvents = events.filter((ev) => (
+          ev.latitude >= latMin && ev.latitude <= latMax &&
+          ev.longitude >= lonMin && ev.longitude <= lonMax
+        ));
+      } else if (region.lat !== undefined && region.lon !== undefined && region.radius !== undefined) {
+        regionEvents = events.filter((ev) => calculateDistanceKmLocal(region.lat!, region.lon!, ev.latitude, ev.longitude) <= region.radius!);
+      } else {
+        regionEvents = events;
+      }
+      counts[key] = regionEvents.filter(byYear).length;
+    });
+    return counts;
+  }, [fireHistory?.events, selectedYear]);
+
+  // Compute global per-year counts (All Americas) for year dropdown
+  const yearCounts = useMemo(() => {
+    const counts: Record<number, number> = {};
+    const events = fireHistory?.events || [];
+    events.forEach((ev) => {
+      const yr = new Date(ev.date).getFullYear();
+      counts[yr] = (counts[yr] ?? 0) + 1;
+    });
+    return counts;
+  }, [fireHistory?.events]);
+
   return (
     <div className="timeline-wrapper">
       <div className="timeline-controls">
@@ -269,6 +326,7 @@ const EventExplorer: React.FC = () => {
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Region selector with total events count visible for all regions */}
           <select 
             value={selectedRegion}
             onChange={handleRegionChange}
@@ -283,7 +341,7 @@ const EventExplorer: React.FC = () => {
           >
             {Object.entries(REGION_PRESETS).map(([key, region]) => (
               <option key={key} value={key}>
-                {region.name}
+                {region.name} ({regionCounts[key] ?? 0})
               </option>
             ))}
           </select>
@@ -304,7 +362,7 @@ const EventExplorer: React.FC = () => {
           >
             {availableYears.length === 0 && <option value="">No years</option>}
             {availableYears.map((yr) => (
-              <option key={yr} value={yr}>{yr}</option>
+              <option key={yr} value={yr}>{yr} ({yearCounts[yr] ?? 0})</option>
             ))}
           </select>
         </div>
