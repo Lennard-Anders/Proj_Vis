@@ -41,13 +41,24 @@ def fetch_monthly_weather_data(year, month):
             .filterDate(start_str, end_str) \
             .mean()
         
-        # Generate sampling grid
-        lats = [lat for lat in range(25, 51, 2)]
-        lons = [lon for lon in range(-125, -69, 2)]
+        # Generate sampling grid for North and South America
+        # North America: 25°N to 50°N
+        north_america_lats = [lat for lat in range(25, 51, 2)]
+        north_america_lons = [lon for lon in range(-125, -69, 2)]
+        
+        # South America: 15°S to 15°N (tropical/subtropical regions)
+        south_america_lats = [lat for lat in range(-15, 16, 3)]
+        south_america_lons = [lon for lon in range(-80, -35, 3)]
         
         sample_points = []
-        for lat in lats:
-            for lon in lons:
+        # Add North America points
+        for lat in north_america_lats:
+            for lon in north_america_lons:
+                sample_points.append(ee.Feature(ee.Geometry.Point([lon, lat])))
+        
+        # Add South America points
+        for lat in south_america_lats:
+            for lon in south_america_lons:
                 sample_points.append(ee.Feature(ee.Geometry.Point([lon, lat])))
         
         points_fc = ee.FeatureCollection(sample_points)
