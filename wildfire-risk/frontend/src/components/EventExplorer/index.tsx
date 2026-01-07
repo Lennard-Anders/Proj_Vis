@@ -489,7 +489,6 @@ const EventExplorer: React.FC = () => {
                   <div className="timeline-tooltip__row">📅 {formatDate(hoverInfo.event.date)}</div>
                   <div className="timeline-tooltip__row">🔥 FRP: {hoverInfo.event.fire_radiative_power.toFixed(1)} MW</div>
                   <div className="timeline-tooltip__row">✅ Confidence: {hoverInfo.event.confidence}%</div>
-                  <div className="timeline-tooltip__row">ℹ️ Icon size scales with FRP (higher = bigger)</div>
                 </div>
               )}
             </div>
