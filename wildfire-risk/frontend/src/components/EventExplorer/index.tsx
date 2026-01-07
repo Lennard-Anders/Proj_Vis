@@ -391,7 +391,7 @@ const EventExplorer: React.FC = () => {
           
           {selectedFireEvent && (
             <div className="timeline-hint">
-              💡 <strong>Fire marked on map</strong> - Hover for details
+              💡 <strong>Fire marked on global context map</strong> - Hover for details
             </div>
           )}
         </>
