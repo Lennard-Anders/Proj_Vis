@@ -538,7 +538,7 @@ const TriView: React.FC = () => {
       {!loading && risk && (
         <>
           <div className="tri-view">
-            <h3>Scenario Risk Map</h3>
+            {/* <h3>Scenario Risk Map</h3>
             <div className="tri-view__grid">
               {risk.grid.slice(0, 6).map((cell: RiskGridCell) => (
                 <div key={`${cell.lat}-${cell.lon}`} className="tri-view__cell">
@@ -548,7 +548,7 @@ const TriView: React.FC = () => {
                   <span>{(cell.prob * 100).toFixed(1)}%</span>
                 </div>
               ))}
-            </div>
+            </div> */}
             <div className="tri-view__deck">
               <DeckGL
                 style={{ width: "100%", height: "100%" }}
@@ -676,7 +676,7 @@ const TriView: React.FC = () => {
                 }}
               />
             </div>
-            <MapHeatmap data={risk} />
+            {/* <MapHeatmap data={risk} /> */}
             <MapLegend />
             
             {/* Weather Parameter Legends */}

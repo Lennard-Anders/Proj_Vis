@@ -114,11 +114,11 @@ def main():
     weather_df = pd.read_csv(weather_file)
     logger.info(f"Loaded {len(weather_df)} weather records")
     
-    # Add random jitter to coordinates (±0.3 degrees) to break grid pattern
+    # Add significant random jitter to coordinates (±1.5 degrees) to break grid pattern
     logger.info("Adding spatial variation to coordinates...")
     np.random.seed(42)
-    weather_df['latitude'] = weather_df['latitude'] + np.random.uniform(-0.3, 0.3, len(weather_df))
-    weather_df['longitude'] = weather_df['longitude'] + np.random.uniform(-0.3, 0.3, len(weather_df))
+    weather_df['latitude'] = weather_df['latitude'] + np.random.uniform(-1.5, 1.5, len(weather_df))
+    weather_df['longitude'] = weather_df['longitude'] + np.random.uniform(-1.5, 1.5, len(weather_df))
     
     # Estimate temperature based on location and season
     logger.info("Estimating temperatures...")
