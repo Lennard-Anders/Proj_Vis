@@ -44,6 +44,13 @@ const EventExplorer: React.FC = () => {
     }
   };
 
+  const formatAreaKm2 = (area: number | null | undefined) => {
+    if (area == null || !isFinite(area) || area <= 0) return 'Unknown';
+    if (area >= 100) return `${area.toFixed(0)} km²`;
+    if (area >= 10) return `${area.toFixed(1)} km²`;
+    return `${area.toFixed(2)} km²`;
+  };
+
   const getSeverityColor = (frp: number) => {
     if (frp > 100) return '#ff3333';
     if (frp > 50) return '#ff9933';
@@ -489,6 +496,7 @@ const EventExplorer: React.FC = () => {
                   <div className="timeline-tooltip__row">📍 {hoverLocationLoading ? 'Loading...' : hoverLocation || 'Unknown location'}</div>
                   <div className="timeline-tooltip__row">📅 {formatDate(hoverInfo.event.date)}</div>
                   <div className="timeline-tooltip__row">🔥 FRP: {hoverInfo.event.fire_radiative_power.toFixed(1)} MW</div>
+                  <div className="timeline-tooltip__row">📐 Area: {formatAreaKm2(hoverInfo.event.area_km2)}</div>
                   <div className="timeline-tooltip__row">✅ Confidence: {hoverInfo.event.confidence}%</div>
                 </div>
               )}
