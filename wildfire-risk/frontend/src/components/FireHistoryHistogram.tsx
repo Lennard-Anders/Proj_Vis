@@ -141,7 +141,7 @@ const FireHistoryHistogram: React.FC = () => {
           display: 'flex',
           alignItems: 'flex-end',
           gap: '8px',
-          height: '200px',
+          height: '150px',
           padding: '0 var(--spacing-sm)',
           borderBottom: '2px solid var(--border-color)',
           marginBottom: 'var(--spacing-sm)'
@@ -167,7 +167,7 @@ const FireHistoryHistogram: React.FC = () => {
               <div
                 style={{
                   width: '100%',
-                  height: `${(item.count / maxCount) * 160}px`,
+                  height: `${(item.count / maxCount) * 120}px`,
                   background: selectedBar?.label === item.label 
                     ? `linear-gradient(180deg, #3b82f6dd, #3b82f6)` 
                     : `linear-gradient(180deg, ${item.color}dd, ${item.color})`,

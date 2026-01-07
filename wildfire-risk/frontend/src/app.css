@@ -200,8 +200,8 @@ body {
 .fire-history-card {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
-  padding: var(--spacing-xl);
+  gap: var(--spacing-xs);
+  padding: var(--spacing-md);
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   height: 100%;
   overflow: visible;
@@ -214,13 +214,14 @@ body {
 .fire-history-card__header p {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
+  margin-top: 2px;
 }
 
 .fire-history-card__body {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-sm);
   flex: 1;
   overflow-y: auto;
   overflow-x: visible;
@@ -250,7 +251,7 @@ body {
   background: rgba(255, 255, 255, 0.8);
   box-shadow: none;
   border: 1px solid rgba(226, 232, 240, 0.9);
-  padding: var(--spacing-lg);
+  padding: var(--spacing-sm);
 }
 
 .fire-history-card__body > .panel h2,
@@ -398,7 +399,7 @@ body {
 .world-map {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-xs);
   min-height: 100%;
 }
 
@@ -415,7 +416,7 @@ body {
 
 .world-map__container {
   position: relative;
-  height: 400px;
+  height: 300px;
   border-radius: 12px;
   overflow: hidden;
   background: linear-gradient(135deg, #1a1f3a 0%, #0a0e27 100%);
@@ -769,8 +770,8 @@ li:hover {
 .timeline-wrapper {
   background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   border-radius: 12px;
-  padding: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(255, 107, 53, 0.2);
   position: relative;
@@ -782,9 +783,9 @@ li:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-xs);
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
 }
 
 .status-indicator {
@@ -838,11 +839,11 @@ li:hover {
   position: relative;
   overflow-x: auto;
   overflow-y: visible;
-  padding: 96px 0 32px 0;
-  margin: 0 calc(-1 * var(--spacing-md));
-  padding-left: var(--spacing-md);
-  padding-right: var(--spacing-md);
-  margin-top: 4px;
+  padding: 48px 0 16px 0;
+  margin: 0 calc(-1 * var(--spacing-sm));
+  padding-left: var(--spacing-sm);
+  padding-right: var(--spacing-sm);
+  margin-top: 2px;
 }
 
 .timeline-scroll::-webkit-scrollbar {
@@ -868,7 +869,7 @@ li:hover {
   gap: 0;
   align-items: center;
   position: relative;
-  min-height: 60px;
+  min-height: 40px;
 }
 .timeline-month-group {
   display: flex;

@@ -233,20 +233,20 @@ const TriView: React.FC = () => {
       return baseLayers;
     }
     
-    const riskLayer = new ScatterplotLayer<RiskGridCell>({
-      id: "risk-layer",
-      data: risk.grid,
-      getPosition: (cell: RiskGridCell) => [cell.lon, cell.lat],
-      getRadius: 8000,
-      radiusUnits: "meters",
-      getFillColor: (cell: RiskGridCell) => {
-        const intensity = Math.min(255, Math.round(cell.prob * 255));
-        const cooled = Math.max(0, 170 - Math.round(intensity / 2));
-        return [220, 50, 50, 220];
-      },
-      opacity: 1.0,
-      pickable: true,
-    });
+    // const riskLayer = new ScatterplotLayer<RiskGridCell>({
+    //   id: "risk-layer",
+    //   data: risk.grid,
+    //   getPosition: (cell: RiskGridCell) => [cell.lon, cell.lat],
+    //   getRadius: 8000,
+    //   radiusUnits: "meters",
+    //   getFillColor: (cell: RiskGridCell) => {
+    //     const intensity = Math.min(255, Math.round(cell.prob * 255));
+    //     const cooled = Math.max(0, 170 - Math.round(intensity / 2));
+    //     return [220, 50, 50, 220];
+    //   },
+    //   opacity: 1.0,
+    //   pickable: true,
+    // });
     
     // Temperature heatmap layer - sharp edges, visible map
     const tempLayer = showTempLayer && temperatureData.length > 0 ? new HeatmapLayer({
@@ -416,7 +416,7 @@ const TriView: React.FC = () => {
       windLayer,
       humidityLayer,
       rainLayer,
-      riskLayer,
+      // riskLayer,
       aiRiskLayer,
       aiPredictionLayer,
       fireMarkerLayer,
@@ -677,7 +677,7 @@ const TriView: React.FC = () => {
               />
             </div>
             {/* <MapHeatmap data={risk} /> */}
-            <MapLegend />
+            {/* <MapLegend /> */}
             
             {/* Weather Parameter Legends */}
             {(showTempLayer || showWindLayer || showHumidityLayer || showRainLayer) && (
