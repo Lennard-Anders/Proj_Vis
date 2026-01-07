@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type Abbreviation = {
   term: string;
@@ -21,24 +22,69 @@ const InfoPopover: React.FC<InfoPopoverProps> = ({
   align = "right",
 }) => {
   const [open, setOpen] = useState(false);
+  const [panelStyle, setPanelStyle] = useState<React.CSSProperties | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     function onDocClick(event: MouseEvent) {
       if (!open) return;
-      const el = rootRef.current;
-      if (!el) return;
-      if (!el.contains(event.target as Node)) setOpen(false);
-    }
+    const el = rootRef.current;
+    const panel = panelRef.current;
+    const target = event.target as Node;
+    if (el?.contains(target)) return;
+    if (panel?.contains(target)) return;
+    setOpen(false);
+  }
 
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open]);
 
-  const panelStyle: React.CSSProperties = {
-    width,
-    ...(align === "left" ? { left: 0 } : { right: 0 }),
-  };
+  const updatePanelPosition = useCallback(() => {
+    if (!open || typeof window === "undefined") return;
+    const root = rootRef.current;
+    if (!root) return;
+
+    const margin = 12;
+    const rect = root.getBoundingClientRect();
+    const safeWidth = Math.max(0, Math.min(width, window.innerWidth - margin * 2));
+    let left = align === "left" ? rect.left : rect.right - safeWidth;
+
+    if (left < margin) left = margin;
+    if (left + safeWidth > window.innerWidth - margin) {
+      left = Math.max(margin, window.innerWidth - margin - safeWidth);
+    }
+
+    const top = rect.bottom + 10;
+
+    setPanelStyle({
+      width: safeWidth,
+      top,
+      left,
+      position: "fixed",
+      zIndex: 2000,
+    });
+  }, [open, width, align]);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setPanelStyle(null);
+      return;
+    }
+    updatePanelPosition();
+  }, [open, updatePanelPosition]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handle = () => updatePanelPosition();
+    window.addEventListener("resize", handle);
+    window.addEventListener("scroll", handle, true);
+    return () => {
+      window.removeEventListener("resize", handle);
+      window.removeEventListener("scroll", handle, true);
+    };
+  }, [open, updatePanelPosition]);
 
   return (
     <div ref={rootRef} className="info-popover">
@@ -55,24 +101,26 @@ const InfoPopover: React.FC<InfoPopoverProps> = ({
         </span>
       </button>
 
-      {open && (
-        <div className="info-popover__panel" style={panelStyle}>
-          {title && <div className="info-popover__title">{title}</div>}
-          <p className="info-popover__desc">{description}</p>
-          {abbreviations.length > 0 && (
-            <>
-              <div className="info-popover__subtitle">Abbreviations</div>
-              <ul className="info-popover__list">
-                {abbreviations.map((item) => (
-                  <li key={item.term}>
-                    <strong>{item.term}</strong> - {item.meaning}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </div>
-      )}
+      {open && panelStyle && typeof document !== "undefined" &&
+        createPortal(
+          <div ref={panelRef} className="info-popover__panel" style={panelStyle}>
+            {title && <div className="info-popover__title">{title}</div>}
+            <p className="info-popover__desc">{description}</p>
+            {abbreviations.length > 0 && (
+              <>
+                <div className="info-popover__subtitle">Abbreviations</div>
+                <ul className="info-popover__list">
+                  {abbreviations.map((item) => (
+                    <li key={item.term}>
+                      <strong>{item.term}</strong> - {item.meaning}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 };
