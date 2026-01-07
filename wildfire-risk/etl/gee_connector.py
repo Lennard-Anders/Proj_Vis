@@ -22,7 +22,7 @@ class GEEDataPipeline:
         """Initialize GEE connection, preferring a service account key from env."""
         # Resolve config from env if not explicitly provided
         key_path = service_account_key or os.getenv("GEE_SERVICE_ACCOUNT_KEY")
-        project_id = project or os.getenv("GEE_PROJECT") or "data-visualization-project"
+        project_id = project or os.getenv("GEE_PROJECT") or "data-visuaization-project"  # Note: Correct spelling from key file
         service_account_email = os.getenv("GEE_SERVICE_ACCOUNT_EMAIL")
 
         # If no explicit SA email was provided, try to read it from the key file
@@ -40,7 +40,7 @@ class GEEDataPipeline:
                     raise ValueError("Service account email missing for GEE credentials")
 
                 credentials = ee.ServiceAccountCredentials(
-                    service_account=service_account_email,
+                    email=service_account_email,
                     key_file=key_path,
                 )
                 ee.Initialize(credentials, project=project_id)

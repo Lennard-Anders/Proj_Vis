@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/gee", tags=["google-earth-engine"])
 
 _gee_pipeline: Optional[GEEDataPipeline] = None
-FIRE_HISTORY_CSV = Path("/app/data/fire_history.csv")
+# Use predicted fire events from weather data (2023-2024)
+FIRE_HISTORY_CSV = Path("/app/data/Datasets/predicted_fire_events_2023_2024.csv")
 FORCE_CSV = os.getenv("FIRE_HISTORY_FORCE_CSV", "1") == "1"
 
 def get_gee_pipeline() -> GEEDataPipeline:

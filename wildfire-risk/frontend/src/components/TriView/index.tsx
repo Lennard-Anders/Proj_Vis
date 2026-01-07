@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import DeckGL from "@deck.gl/react";
 import type { PickingInfo } from "@deck.gl/core";
-import { ScatterplotLayer } from "@deck.gl/layers";
+import { ScatterplotLayer, IconLayer } from "@deck.gl/layers";
 import { HeatmapLayer, ScreenGridLayer } from "@deck.gl/aggregation-layers";
 import { TileLayer } from "@deck.gl/geo-layers";
 import { BitmapLayer } from "@deck.gl/layers";
@@ -36,50 +36,44 @@ interface RainPoint {
   rain: number;
 }
 
-// Color scale for temperature (like weather maps) - blue to red gradient
+// Color scale for temperature - smooth red gradient
 const TEMP_COLOR_RANGE = [
-  [0, 0, 255],      // -10°C: Deep blue
-  [0, 128, 255],    // 0°C: Light blue
-  [0, 255, 255],    // 10°C: Cyan
-  [0, 255, 128],    // 20°C: Cyan-green
-  [128, 255, 0],    // 25°C: Green-yellow
-  [255, 255, 0],    // 30°C: Yellow
-  [255, 200, 0],    // 35°C: Yellow-orange
-  [255, 128, 0],    // 40°C: Orange
-  [255, 64, 0],     // 45°C: Orange-red
-  [255, 0, 0],      // 50°C: Red
+  [255, 255, 100],   // Cold: Light yellow
+  [255, 200, 50],    // Cool: Yellow-orange
+  [255, 150, 40],    // Mild: Orange
+  [255, 100, 30],    // Warm: Deep orange
+  [255, 50, 20],     // Hot: Red-orange
+  [220, 20, 20],     // Very hot: Deep red
 ];
 
-// Color scale for wind speed - light green to dark purple
+// Color scale for wind speed - blue spectrum
 const WIND_COLOR_RANGE = [
-  [240, 255, 240],  // 0 m/s: Very light green
-  [144, 238, 144],  // 5 m/s: Light green
-  [60, 179, 113],   // 10 m/s: Medium green
-  [255, 215, 0],    // 15 m/s: Gold
-  [255, 140, 0],    // 20 m/s: Dark orange
-  [178, 34, 34],    // 25 m/s: Firebrick
-  [128, 0, 128],    // 30 m/s: Purple
+  [200, 230, 255],   // 0 m/s: Very light blue
+  [150, 200, 255],   // 5 m/s: Light blue
+  [100, 170, 255],   // 10 m/s: Medium blue
+  [60, 140, 240],    // 15 m/s: Blue
+  [30, 100, 220],    // 20 m/s: Deep blue
+  [10, 60, 180],     // 25 m/s: Dark blue
 ];
 
-// Color scale for humidity - brown (dry) to blue (humid)
+// Color scale for humidity - phthalo green spectrum
 const HUMIDITY_COLOR_RANGE = [
-  [139, 69, 19],    // 0%: Dark brown (very dry)
-  [210, 180, 140],  // 20%: Tan
-  [240, 230, 140],  // 40%: Khaki
-  [173, 216, 230],  // 60%: Light blue
-  [135, 206, 250],  // 80%: Sky blue
-  [0, 191, 255],    // 100%: Deep sky blue
+  [200, 255, 220],   // 0%: Very light green
+  [150, 240, 200],   // 20%: Light green
+  [100, 220, 180],   // 40%: Medium green
+  [50, 190, 150],    // 60%: Phthalo green
+  [20, 160, 120],    // 80%: Deep green
+  [10, 130, 100],    // 100%: Dark phthalo green
 ];
 
-// Color scale for rain - white to dark blue
+// Color scale for rain - purple spectrum
 const RAIN_COLOR_RANGE = [
-  [240, 248, 255],  // 0mm: Alice blue (very light)
-  [176, 224, 230],  // 5mm: Powder blue
-  [135, 206, 235],  // 10mm: Sky blue
-  [70, 130, 180],   // 20mm: Steel blue
-  [65, 105, 225],   // 30mm: Royal blue
-  [0, 0, 139],      // 40mm: Dark blue
-  [25, 25, 112],    // 50mm: Midnight blue
+  [230, 200, 255],   // 0mm: Very light purple
+  [200, 150, 255],   // 5mm: Light purple
+  [170, 100, 240],   // 10mm: Medium purple
+  [140, 60, 220],    // 20mm: Purple
+  [110, 40, 180],    // 30mm: Deep purple
+  [80, 20, 140],     // 40mm: Dark purple
 ];
 
 const TriView: React.FC = () => {
@@ -131,21 +125,25 @@ const TriView: React.FC = () => {
   }, [date]);
 
   // Load weather data from GEE-powered API endpoints
+  // Wind always uses today's date for real-time data
   useEffect(() => {
     const loadWeatherData = async () => {
-      const requestBody = {
-        date,
-        region: 'global',
-        bbox: null
+      // Wind uses today's date to get real GEE data
+      const today = new Date().toISOString().split('T')[0];
+      
+      const windRequestBody = {
+        date: today,  // Always use today for wind
+        region: 'north_america',
+        bbox: { min_lat: 25, max_lat: 50, min_lon: -125, max_lon: -70 }
       };
 
-      // Load wind data
+      // Load wind data (uses today's date)
       try {
-        console.log('Loading wind data for date:', date);
+        console.log('Loading real-time wind data from GEE for:', today);
         const windResponse = await fetch('http://localhost:8000/api/weather/wind/heatmap', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody)
+          body: JSON.stringify(windRequestBody)
         });
         if (windResponse.ok) {
           const result = await windResponse.json();
@@ -158,13 +156,19 @@ const TriView: React.FC = () => {
         console.error('Failed to load wind data:', err);
       }
 
-      // Load humidity data
+      // Load humidity data (uses historical date)
+      const otherRequestBody = {
+        date,
+        region: 'global',
+        bbox: null
+      };
+      
       try {
         console.log('Loading humidity data for date:', date);
         const humidityResponse = await fetch('http://localhost:8000/api/weather/humidity/heatmap', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody)
+          body: JSON.stringify(otherRequestBody)
         });
         if (humidityResponse.ok) {
           const result = await humidityResponse.json();
@@ -177,13 +181,13 @@ const TriView: React.FC = () => {
         console.error('Failed to load humidity data:', err);
       }
 
-      // Load rain data
+      // Load rain data (uses historical date)
       try {
         console.log('Loading rain data for date:', date);
         const rainResponse = await fetch('http://localhost:8000/api/weather/rain/heatmap', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody)
+          body: JSON.stringify(otherRequestBody)
         });
         if (rainResponse.ok) {
           const result = await rainResponse.json();
@@ -243,54 +247,58 @@ const TriView: React.FC = () => {
       pickable: true,
     });
     
-    // Temperature heatmap layer - continuous weather-style gradient
+    // Temperature heatmap layer - sharp edges, visible map
     const tempLayer = showTempLayer && temperatureData.length > 0 ? new HeatmapLayer({
       id: 'temperature-weather-map',
       data: temperatureData,
       getPosition: (d: TemperaturePoint) => [d.longitude, d.latitude],
-      getWeight: (d: TemperaturePoint) => Math.max(0, d.temperature + 10), // Shift to positive
-      radiusPixels: 60,
-      intensity: 1.5,
-      threshold: 0.03,
+      getWeight: (d: TemperaturePoint) => Math.max(0, d.temperature + 20),
+      radiusPixels: 30,
+      intensity: 1,
+      threshold: 0.1,
+      opacity: 0.6,
       colorRange: TEMP_COLOR_RANGE as any,
       aggregation: 'MEAN',
     }) : null;
 
-    // Wind speed heatmap layer
+    // Wind speed heatmap - blends faster than temp
     const windLayer = showWindLayer && windData.length > 0 ? new HeatmapLayer({
       id: 'wind-speed-map',
       data: windData,
       getPosition: (d: WindPoint) => [d.longitude, d.latitude],
-      getWeight: (d: WindPoint) => d.wind_speed,
-      radiusPixels: 60,
-      intensity: 1.5,
-      threshold: 0.03,
+      getWeight: (d: WindPoint) => d.wind_speed * 2,
+      radiusPixels: 55,
+      intensity: 1.3,
+      threshold: 0.05,
+      opacity: 0.6,
       colorRange: WIND_COLOR_RANGE as any,
       aggregation: 'MEAN',
     }) : null;
 
-    // Humidity heatmap layer
+    // Humidity heatmap - blends faster than temp
     const humidityLayer = showHumidityLayer && humidityData.length > 0 ? new HeatmapLayer({
       id: 'humidity-map',
       data: humidityData,
       getPosition: (d: HumidityPoint) => [d.longitude, d.latitude],
       getWeight: (d: HumidityPoint) => d.humidity,
-      radiusPixels: 60,
-      intensity: 1.5,
-      threshold: 0.03,
+      radiusPixels: 55,
+      intensity: 1.3,
+      threshold: 0.05,
+      opacity: 0.6,
       colorRange: HUMIDITY_COLOR_RANGE as any,
       aggregation: 'MEAN',
     }) : null;
 
-    // Rain heatmap layer
+    // Rain heatmap - blends faster than temp
     const rainLayer = showRainLayer && rainData.length > 0 ? new HeatmapLayer({
       id: 'rain-map',
       data: rainData,
       getPosition: (d: RainPoint) => [d.longitude, d.latitude],
-      getWeight: (d: RainPoint) => d.rain,
-      radiusPixels: 60,
-      intensity: 1.5,
-      threshold: 0.03,
+      getWeight: (d: RainPoint) => d.rain * 3,
+      radiusPixels: 55,
+      intensity: 1.3,
+      threshold: 0.05,
+      opacity: 0.6,
       colorRange: RAIN_COLOR_RANGE as any,
       aggregation: 'MEAN',
     }) : null;
@@ -357,6 +365,49 @@ const TriView: React.FC = () => {
       getLineWidth: 300,
       lineWidthUnits: "meters",
     }) : null;
+
+    // Click location pin marker - thumbtack style with risk-based color
+    const clickPinLayer = clickedLocationRef ? new IconLayer({
+      id: 'click-pin-marker',
+      data: [{
+        latitude: clickedLocationRef.lat,
+        longitude: clickedLocationRef.lon,
+        probability: aiRiskPrediction?.probability || 0,
+      }],
+      getPosition: (d: any) => [d.longitude, d.latitude],
+      getIcon: (d: any) => {
+        // Determine color based on probability
+        let pinColor = '#ff6b35'; // Default orange
+        if (aiRiskPrediction) {
+          const prob = d.probability;
+          if (prob < 0.3) {
+            pinColor = '#22c55e'; // Green - low risk
+          } else if (prob < 0.6) {
+            pinColor = '#ff9933'; // Orange - medium risk
+          } else {
+            pinColor = '#ef4444'; // Red - high risk
+          }
+        }
+        
+        return {
+          url: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="24" height="36">
+              <!-- Pin point -->
+              <path d="M12 36 L12 16" stroke="${pinColor}" stroke-width="2" fill="none"/>
+              <!-- Pin head circle -->
+              <circle cx="12" cy="8" r="7" fill="${pinColor}" stroke="#ffffff" stroke-width="2"/>
+              <!-- Inner dot -->
+              <circle cx="12" cy="8" r="3" fill="#ffffff"/>
+            </svg>
+          `),
+          width: 24,
+          height: 36,
+          anchorY: 36,
+        };
+      },
+      getSize: 48,
+      pickable: true,
+    }) : null;
     
     return [
       ...baseLayers,
@@ -368,8 +419,9 @@ const TriView: React.FC = () => {
       aiRiskLayer,
       aiPredictionLayer,
       fireMarkerLayer,
+      clickPinLayer,
     ].filter(Boolean);
-  }, [risk, selectedFireEvent, showTempLayer, showWindLayer, showHumidityLayer, showRainLayer, temperatureData, windData, humidityData, rainData, aiRiskGrid]);
+  }, [risk, selectedFireEvent, showTempLayer, showWindLayer, showHumidityLayer, showRainLayer, temperatureData, windData, humidityData, rainData, aiRiskGrid, clickedLocationRef]);
 
   const INITIAL_VIEW_STATE = useMemo(
     () => ({ longitude: -120.25, latitude: 35.25, zoom: 5, pitch: 0, bearing: 0 }),
@@ -500,6 +552,53 @@ const TriView: React.FC = () => {
                   }
                 }}
                 getTooltip={(info: PickingInfo<any>) => {
+                  // Show click pin tooltip
+                  if (info.layer?.id === 'click-pin-marker' && clickedLocationRef) {
+                    const probability = aiRiskPrediction?.probability;
+                    const riskLevel = probability 
+                      ? (probability < 0.3 ? 'Low' : probability < 0.6 ? 'Medium' : 'High')
+                      : 'Unknown';
+                    const riskColor = probability
+                      ? (probability < 0.3 ? '#22c55e' : probability < 0.6 ? '#ff9933' : '#ef4444')
+                      : '#ff6b35';
+                    
+                    return {
+                      html: `
+                        <div style="padding: 12px; max-width: 280px; background: rgba(10, 14, 39, 0.98); border-radius: 8px; border: 2px solid ${riskColor};">
+                          <div style="font-weight: bold; font-size: 14px; color: ${riskColor}; margin-bottom: 8px;">
+                            📍 Clicked Location
+                          </div>
+                          <div style="color: #e0e6f5; line-height: 1.6;">
+                            <div style="margin-bottom: 6px;">
+                              <span style="color: #9ca3af; font-size: 12px;">Latitude:</span>
+                              <span style="float: right; font-weight: 600;">${clickedLocationRef.lat.toFixed(4)}°</span>
+                            </div>
+                            <div style="margin-bottom: 6px;">
+                              <span style="color: #9ca3af; font-size: 12px;">Longitude:</span>
+                              <span style="float: right; font-weight: 600;">${clickedLocationRef.lon.toFixed(4)}°</span>
+                            </div>
+                            ${probability !== undefined ? `
+                              <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(224, 230, 245, 0.2);">
+                                <div style="margin-bottom: 4px;">
+                                  <span style="color: #9ca3af; font-size: 12px;">Fire Risk:</span>
+                                  <span style="float: right; font-weight: 600; color: ${riskColor};">${riskLevel}</span>
+                                </div>
+                                <div>
+                                  <span style="color: #9ca3af; font-size: 12px;">Probability:</span>
+                                  <span style="float: right; font-weight: 600;">${(probability * 100).toFixed(1)}%</span>
+                                </div>
+                              </div>
+                            ` : ''}
+                          </div>
+                        </div>
+                      `,
+                      style: {
+                        backgroundColor: 'transparent',
+                        padding: '0',
+                      }
+                    };
+                  }
+
                   // Show fire analysis tooltip if hovering fire marker
                   if (info.layer?.id === 'fire-marker' && fireAnalysis) {
                     const analysis = fireAnalysis;
@@ -726,7 +825,8 @@ const TriView: React.FC = () => {
             )}
           </div>
 
-          {/* Temperature Heatmap Visualization */}
+          {/* Temperature Heatmap Visualization - HIDDEN */}
+          {false && (
           <div className="tri-view" style={{ marginTop: 'var(--spacing-lg)' }}>
             <h3>🌡️ Global Temperature Heatmap</h3>
             <div className="tri-view__deck" style={{ height: '500px' }}>
@@ -816,6 +916,7 @@ const TriView: React.FC = () => {
               </div>
             </div>
           </div>
+          )}
         </>
       )}
       <TimeScrubber date={date} onChange={setDate} />

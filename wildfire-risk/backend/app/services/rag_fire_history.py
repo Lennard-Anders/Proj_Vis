@@ -16,15 +16,21 @@ DATA_DIR = Path("/app/data")
 class FireHistoryRAG:
     """Lightweight RAG helper around cached fire history CSV exports."""
 
-    def __init__(self, pattern: str = "fire_history*.csv") -> None:
+    def __init__(self, pattern: str = "predicted_fire_events*.csv") -> None:
         self.pattern = pattern
         self.df: Optional[pd.DataFrame] = None
         self._load_data()
 
     def _load_data(self) -> None:
-        """Load all matching fire history CSVs from DATA_DIR into a single DataFrame."""
+        """Load all matching fire history CSVs from DATA_DIR and Datasets subdirectory."""
         try:
-            files = list(DATA_DIR.glob(self.pattern))
+            # Search in both DATA_DIR and DATA_DIR/Datasets
+            search_dirs = [DATA_DIR, DATA_DIR / "Datasets"]
+            files = []
+            for search_dir in search_dirs:
+                if search_dir.exists():
+                    files.extend(search_dir.glob(self.pattern))
+            
             if not files:
                 logger.warning("No fire history CSV files found for RAG")
                 self.df = None

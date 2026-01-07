@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Paths to temperature datasets (mounts put files directly under /app/data)
-DATA_DIR = Path("/app/data")
+DATA_DIR = Path("/app/data/Datasets")
 AMERICA_DATA = DATA_DIR / "df_america_cleaned.csv"
 CITY_DATA = DATA_DIR / "GlobalLandTemperaturesByCity.csv"
 COUNTRY_DATA = DATA_DIR / "GlobalLandTemperaturesByCountry.csv"
@@ -20,6 +20,7 @@ class TemperatureService:
         self._america_df: Optional[pd.DataFrame] = None
         self._city_df: Optional[pd.DataFrame] = None
         self._country_df: Optional[pd.DataFrame] = None
+        self._date_range_cache: Optional[Dict[str, Any]] = None
     
     def _load_america_data(self) -> pd.DataFrame:
         """Load America temperature data."""
@@ -79,7 +80,6 @@ class TemperatureService:
         """
         try:
             target_date = pd.to_datetime(date_str)
-            target_month = f"{target_date.year}-{target_date.month:02d}"
             
             # Load data based on region
             if region and region.lower() in ['california', 'north_america', 'south_america', 'americas']:
@@ -90,6 +90,14 @@ class TemperatureService:
             if df is None or df.empty:
                 logger.warning("No temperature data available after loading datasets")
                 return []
+            
+            # Get latest available date and use it if requested date is too recent
+            latest_date = df['dt'].max()
+            if target_date > latest_date:
+                logger.info(f"Requested date {date_str} is beyond data range, using latest: {latest_date.strftime('%Y-%m-%d')}")
+                target_date = latest_date
+            
+            target_month = f"{target_date.year}-{target_date.month:02d}"
             
             # Filter by date (month-year match)
             df['year_month'] = df['dt'].dt.to_period('M').astype(str)
@@ -185,6 +193,25 @@ class TemperatureService:
                 'std_temp': 10.0,
                 'data_points': 0
             }
+    
+    def get_date_range(self, region: Optional[str] = None) -> Dict[str, Any]:
+        """Get available date range in the dataset."""
+        try:
+            if region and region.lower() in ['california', 'north_america', 'south_america', 'americas']:
+                df = self._load_america_data()
+            else:
+                df = self._load_city_data()
+            
+            if df is None or df.empty:
+                return {'min_date': None, 'max_date': None}
+            
+            return {
+                'min_date': df['dt'].min().strftime('%Y-%m-%d'),
+                'max_date': df['dt'].max().strftime('%Y-%m-%d')
+            }
+        except Exception as e:
+            logger.error(f"Error getting date range: {e}")
+            return {'min_date': None, 'max_date': None}
 
 
 # Global instance
