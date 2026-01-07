@@ -7,11 +7,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Paths to temperature datasets (mounts put files directly under /app/data)
+# Paths to temperature datasets
 DATA_DIR = Path("/app/data/Datasets")
 AMERICA_DATA = DATA_DIR / "df_america_cleaned.csv"
 CITY_DATA = DATA_DIR / "GlobalLandTemperaturesByCity.csv"
 COUNTRY_DATA = DATA_DIR / "GlobalLandTemperaturesByCountry.csv"
+
+# Path to current temperature CSV (pre-fetched data)
+TEMPERATURE_CURRENT_CSV = Path("/app/data") / "temperature_current.csv"
 
 class TemperatureService:
     """Service for loading and processing temperature data."""
@@ -20,7 +23,20 @@ class TemperatureService:
         self._america_df: Optional[pd.DataFrame] = None
         self._city_df: Optional[pd.DataFrame] = None
         self._country_df: Optional[pd.DataFrame] = None
+        self._current_temp_df: Optional[pd.DataFrame] = None
         self._date_range_cache: Optional[Dict[str, Any]] = None
+        self._load_current_temperature_csv()
+    
+    def _load_current_temperature_csv(self):
+        """Load current temperature data from CSV."""
+        try:
+            if TEMPERATURE_CURRENT_CSV.exists():
+                self._current_temp_df = pd.read_csv(TEMPERATURE_CURRENT_CSV)
+                logger.info(f"Loaded {len(self._current_temp_df)} temperature points from CSV")
+            else:
+                logger.warning(f"Temperature CSV not found at {TEMPERATURE_CURRENT_CSV}")
+        except Exception as e:
+            logger.error(f"Error loading temperature CSV: {e}")
     
     def _load_america_data(self) -> pd.DataFrame:
         """Load America temperature data."""
@@ -69,15 +85,60 @@ class TemperatureService:
     ) -> List[Dict[str, Any]]:
         """
         Get temperature data for heatmap visualization.
+        Uses pre-fetched CSV data instead of historical datasets.
         
         Args:
-            date_str: Date in YYYY-MM-DD format
-            region: Optional region filter (e.g., 'california', 'north_america')
+            date_str: Date (ignored, uses current CSV data)
+            region: Optional region filter
             bbox: Optional bounding box {min_lat, max_lat, min_lon, max_lon}
         
         Returns:
             List of temperature points with lat, lon, temperature
         """
+        try:
+            # Use current temperature CSV if available
+            if self._current_temp_df is not None and len(self._current_temp_df) > 0:
+                df = self._current_temp_df.copy()
+                
+                # Apply bounding box filter if provided
+                if bbox:
+                    df = df[
+                        (df['latitude'] >= bbox['min_lat']) &
+                        (df['latitude'] <= bbox['max_lat']) &
+                        (df['longitude'] >= bbox['min_lon']) &
+                        (df['longitude'] <= bbox['max_lon'])
+                    ]
+                
+                # Convert to heatmap format
+                heatmap_data = []
+                for _, row in df.iterrows():
+                    heatmap_data.append({
+                        'latitude': float(row['latitude']),
+                        'longitude': float(row['longitude']),
+                        'temperature': float(row['temperature']),
+                        'uncertainty': 0.0,
+                        'city': '',
+                        'country': ''
+                    })
+                
+                logger.info(f"Returning {len(heatmap_data)} temperature points from CSV")
+                return heatmap_data
+            
+            # Fallback to historical data if CSV not available
+            logger.warning("Temperature CSV not available, using historical data")
+            return self._get_temperature_from_historical(date_str, region, bbox)
+        
+        except Exception as e:
+            logger.error(f"Error getting temperature heatmap: {e}")
+            return []
+    
+    def _get_temperature_from_historical(
+        self,
+        date_str: str,
+        region: Optional[str] = None,
+        bbox: Optional[Dict[str, float]] = None
+    ) -> List[Dict[str, Any]]:
+        """Fallback method using historical datasets."""
         try:
             target_date = pd.to_datetime(date_str)
             

@@ -141,13 +141,41 @@ def fetch_and_save_weather_data(output_dir: Path):
         rain_df.to_csv(rain_file, index=False)
         logger.info(f"✓ Saved {len(rain_data)} rain points to {rain_file}")
         
+        # === TEMPERATURE DATA ===
+        logger.info("Fetching temperature data...")
+        temp_image = gridmet.select('tmmx')  # Maximum temperature
+        temp_samples = temp_image.sampleRegions(
+            collection=points_fc,
+            scale=8000,
+            geometries=True
+        ).getInfo()
+        
+        temp_data = []
+        for feature in temp_samples.get('features', []):
+            props = feature.get('properties', {})
+            coords = feature.get('geometry', {}).get('coordinates', [])
+            if props.get('tmmx') is not None and len(coords) == 2:
+                # Convert from Kelvin to Celsius
+                temp_celsius = props['tmmx'] - 273.15
+                temp_data.append({
+                    'latitude': coords[1],
+                    'longitude': coords[0],
+                    'temperature': temp_celsius
+                })
+        
+        temp_df = pd.DataFrame(temp_data)
+        temp_file = output_dir / 'temperature_current.csv'
+        temp_df.to_csv(temp_file, index=False)
+        logger.info(f"✓ Saved {len(temp_data)} temperature points to {temp_file}")
+        
         # Save metadata
         metadata = {
             'last_updated': datetime.now().isoformat(),
             'data_date': data_date,
             'wind_points': len(wind_data),
             'humidity_points': len(humidity_data),
-            'rain_points': len(rain_data)
+            'rain_points': len(rain_data),
+            'temperature_points': len(temp_data)
         }
         metadata_df = pd.DataFrame([metadata])
         metadata_file = output_dir / 'weather_metadata.csv'
@@ -158,6 +186,7 @@ def fetch_and_save_weather_data(output_dir: Path):
         logger.info(f"   Wind: {len(wind_data)} points")
         logger.info(f"   Humidity: {len(humidity_data)} points")
         logger.info(f"   Rain: {len(rain_data)} points")
+        logger.info(f"   Temperature: {len(temp_data)} points")
         logger.info(f"   Data date: {data_date}")
         
         return True

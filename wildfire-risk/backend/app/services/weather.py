@@ -11,6 +11,7 @@ DATA_DIR = Path("/app/data")
 WIND_CSV = DATA_DIR / "wind_current.csv"
 HUMIDITY_CSV = DATA_DIR / "humidity_current.csv"
 RAIN_CSV = DATA_DIR / "rain_current.csv"
+TEMPERATURE_CSV = DATA_DIR / "temperature_current.csv"
 METADATA_CSV = DATA_DIR / "weather_metadata.csv"
 
 
@@ -21,6 +22,7 @@ class WeatherService:
         self._wind_df: Optional[pd.DataFrame] = None
         self._humidity_df: Optional[pd.DataFrame] = None
         self._rain_df: Optional[pd.DataFrame] = None
+        self._temperature_df: Optional[pd.DataFrame] = None
         self._metadata: Optional[Dict] = None
         self._load_csv_data()
     
@@ -44,6 +46,12 @@ class WeatherService:
                 logger.info(f"Loaded {len(self._rain_df)} rain points from CSV")
             else:
                 logger.warning(f"Rain CSV not found at {RAIN_CSV}")
+            
+            if TEMPERATURE_CSV.exists():
+                self._temperature_df = pd.read_csv(TEMPERATURE_CSV)
+                logger.info(f"Loaded {len(self._temperature_df)} temperature points from CSV")
+            else:
+                logger.warning(f"Temperature CSV not found at {TEMPERATURE_CSV}")
             
             if METADATA_CSV.exists():
                 metadata_df = pd.read_csv(METADATA_CSV)
@@ -139,6 +147,31 @@ class WeatherService:
         
         result = df.to_dict('records')
         logger.info(f"Returning {len(result)} rain points from CSV")
+        return result
+    
+    def get_temperature_heatmap(
+        self,
+        date_str: str,
+        region: Optional[str] = None,
+        bbox: Optional[Dict[str, float]] = None
+    ) -> List[Dict[str, Any]]:
+        """Get temperature data from pre-fetched CSV."""
+        if self._temperature_df is None or len(self._temperature_df) == 0:
+            logger.warning("No temperature data available in CSV")
+            return []
+        
+        df = self._temperature_df.copy()
+        
+        if bbox:
+            df = df[
+                (df['latitude'] >= bbox['min_lat']) &
+                (df['latitude'] <= bbox['max_lat']) &
+                (df['longitude'] >= bbox['min_lon']) &
+                (df['longitude'] <= bbox['max_lon'])
+            ]
+        
+        result = df.to_dict('records')
+        logger.info(f"Returning {len(result)} temperature points from CSV")
         return result
 
 

@@ -36,6 +36,13 @@ class RainPoint(BaseModel):
     rain: float
 
 
+class TemperaturePoint(BaseModel):
+    """Temperature data point."""
+    latitude: float
+    longitude: float
+    temperature: float
+
+
 class WindHeatmapResponse(BaseModel):
     """Response with wind heatmap data."""
     data: List[WindPoint]
@@ -53,6 +60,13 @@ class HumidityHeatmapResponse(BaseModel):
 class RainHeatmapResponse(BaseModel):
     """Response with rain heatmap data."""
     data: List[RainPoint]
+    date: str
+    count: int
+
+
+class TemperatureHeatmapResponse(BaseModel):
+    """Response with temperature heatmap data."""
+    data: List[TemperaturePoint]
     date: str
     count: int
 
