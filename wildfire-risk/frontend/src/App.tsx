@@ -21,7 +21,7 @@ const App: React.FC = () => {
   return (
     <div className="app-layout">
       <header className="app-header">
-        <h1>Wildfire Risk Explorer</h1>
+        <h1>Wildfire Risk Explorer Pro Max Ultra</h1>
         <p>Synthetic tri-view for wildfire risk scenarios.</p>
       </header>
       <section className="app-timeline-section">

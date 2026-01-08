@@ -125,6 +125,7 @@ const WhatIfPanel: React.FC = () => {
     const hasManualLon = Number.isFinite(parsedLon);
     const lat = hasManualLat ? parsedLat : (clickedLocation?.lat || mapViewState.latitude);
     const lon = hasManualLon ? parsedLon : (clickedLocation?.lon || mapViewState.longitude);
+    setClickedLocation?.({ lat, lon });
     
     setResult("Running predictions...");
     setLlmText("");
