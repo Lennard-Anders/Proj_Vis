@@ -25,13 +25,14 @@ const InfoPopover: React.FC<InfoPopoverProps> = ({
   const [panelStyle, setPanelStyle] = useState<React.CSSProperties | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const closeTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     function onDocClick(event: MouseEvent) {
       if (!open) return;
-    const el = rootRef.current;
-    const panel = panelRef.current;
-    const target = event.target as Node;
+      const el = rootRef.current;
+      const panel = panelRef.current;
+      const target = event.target as Node;
     if (el?.contains(target)) return;
     if (panel?.contains(target)) return;
     setOpen(false);
@@ -40,6 +41,14 @@ const InfoPopover: React.FC<InfoPopoverProps> = ({
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current !== null) {
+        window.clearTimeout(closeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const updatePanelPosition = useCallback(() => {
     if (!open || typeof window === "undefined") return;
@@ -86,12 +95,35 @@ const InfoPopover: React.FC<InfoPopoverProps> = ({
     };
   }, [open, updatePanelPosition]);
 
+  const clearCloseTimeout = () => {
+    if (closeTimeoutRef.current !== null) {
+      window.clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  };
+
+  const scheduleClose = () => {
+    clearCloseTimeout();
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setOpen(false);
+    }, 120);
+  };
+
+  const handleOpen = () => {
+    clearCloseTimeout();
+    setOpen(true);
+  };
+
   return (
     <div ref={rootRef} className="info-popover">
       <button
         type="button"
         className="info-popover__button"
         onClick={() => setOpen((v) => !v)}
+        onMouseEnter={handleOpen}
+        onMouseLeave={scheduleClose}
+        onFocus={handleOpen}
+        onBlur={scheduleClose}
         aria-expanded={open}
         aria-label="Panel info"
         title="Info"
@@ -103,7 +135,13 @@ const InfoPopover: React.FC<InfoPopoverProps> = ({
 
       {open && panelStyle && typeof document !== "undefined" &&
         createPortal(
-          <div ref={panelRef} className="info-popover__panel" style={panelStyle}>
+          <div
+            ref={panelRef}
+            className="info-popover__panel"
+            style={panelStyle}
+            onMouseEnter={handleOpen}
+            onMouseLeave={scheduleClose}
+          >
             {title && <div className="info-popover__title">{title}</div>}
             <p className="info-popover__desc">{description}</p>
             {abbreviations.length > 0 && (
