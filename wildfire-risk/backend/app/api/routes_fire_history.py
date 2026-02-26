@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 import pandas as pd
 import os
+import math
 
 sys.path.append(str(Path(__file__).parent.parent.parent / 'etl'))
 from gee_connector import GEEDataPipeline
@@ -20,7 +21,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/gee", tags=["google-earth-engine"])
 
 _gee_pipeline: Optional[GEEDataPipeline] = None
-FIRE_HISTORY_CSV = Path("/app/data/fire_history.csv")
+# Use predicted fire events from weather data (2023-2024)
+FIRE_HISTORY_CSV = Path("/app/data/Datasets/predicted_fire_events_2023_2024.csv")
+FORCE_CSV = os.getenv("FIRE_HISTORY_FORCE_CSV", "1") == "1"
 
 def get_gee_pipeline() -> GEEDataPipeline:
     """Get or create GEE pipeline instance"""
@@ -35,6 +38,18 @@ def get_gee_pipeline() -> GEEDataPipeline:
                 detail="Google Earth Engine service unavailable."
             )
     return _gee_pipeline
+
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Compute great-circle distance between two lat/lon points in kilometers."""
+    r = 6371.0
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return r * c
 
 
 class FireEvent(BaseModel):
@@ -76,15 +91,31 @@ async def get_fire_history(
     Serves from cached CSV if available for faster response
     """
     try:
-        # Try to load from cached CSV first for speed
+        # Try to load from cached CSV first for speed; optionally force CSV-only mode
         if FIRE_HISTORY_CSV.exists():
             logger.info(f"📂 Loading fire history from cached CSV: {FIRE_HISTORY_CSV}")
             try:
                 df = pd.read_csv(FIRE_HISTORY_CSV)
-                
-                # Filter by region if specified
-                # TODO: Implement region filtering
-                
+                # Normalize date column
+                if 'date' in df.columns:
+                    df['date'] = pd.to_datetime(df['date']).dt.date
+
+                # Derive requested date window
+                if start_date and end_date:
+                    start_dt = datetime.strptime(start_date, '%Y-%m-%d').date()
+                    end_dt = datetime.strptime(end_date, '%Y-%m-%d').date()
+                else:
+                    end_dt = datetime.utcnow().date()
+                    start_dt = end_dt - timedelta(days=days_back or 1825)
+
+                # Apply date filter
+                df = df[(df['date'] >= start_dt) & (df['date'] <= end_dt)]
+
+                # Apply spatial filter if lat/lon provided
+                if lat is not None and lon is not None:
+                    radius = radius_km or 100.0
+                    df = df[df.apply(lambda row: _haversine_km(lat, lon, row['latitude'], row['longitude']) <= radius, axis=1)]
+
                 # Convert to response format
                 events = []
                 for _, row in df.iterrows():
@@ -98,19 +129,23 @@ async def get_fire_history(
                         "brightness_temp": float(row.get('brightness_temp', 0.0)),
                         "area_km2": float(row.get('area_km2', 1.0))
                     })
-                
-                logger.info(f"✅ Loaded {len(events)} fires from CSV cache")
+
+                logger.info(f"✅ Loaded {len(events)} fires from CSV cache (filtered)")
                 return FireHistoryResponse(
                     events=events,
                     total_events=len(events),
-                    period_start=df['query_start'].iloc[0] if len(df) > 0 else "2020-11-26",
-                    period_end=df['query_end'].iloc[0] if len(df) > 0 else "2025-11-26",
+                    period_start=start_dt.isoformat(),
+                    period_end=end_dt.isoformat(),
                     region_center={"latitude": lat or 0, "longitude": lon or 0}
                 )
             except Exception as e:
                 logger.warning(f"Failed to load CSV cache: {e}, falling back to GEE query")
+        else:
+            if FORCE_CSV:
+                logger.error("Fire history CSV not found and GEE is disabled (FORCE_CSV=1)")
+                raise HTTPException(status_code=503, detail="Fire history CSV not found; GEE disabled")
         
-        # Fall back to GEE query if no CSV or CSV loading failed
+        # Fall back to GEE query if allowed
         logger.info("🌍 Querying Google Earth Engine for fire history")
         pipeline = get_gee_pipeline()
         

@@ -87,3 +87,18 @@ async def get_historical_stats(
         return HistoricalStatsResponse(**stats)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching historical stats: {str(e)}")
+
+
+@router.get("/date-range")
+async def get_date_range(region: Optional[str] = Query(None, description="Region filter")):
+    """
+    Get available date range in the temperature dataset.
+    
+    Query parameters:
+    - region: Optional region filter (california, north_america, etc.)
+    """
+    try:
+        date_range = temperature_service.get_date_range(region)
+        return date_range
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching date range: {str(e)}")

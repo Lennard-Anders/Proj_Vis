@@ -15,9 +15,9 @@ try:
     print("\nTesting connection...")
     
     # Initialize with your project
-    ee.Initialize(project='data-visuaization-project')
+    ee.Initialize(project='data-visualization-project')
     print("✅ Earth Engine initialized successfully!")
-    print("✅ Project: data-visuaization-project")
+    print("✅ Project: data-visualization-project")
     print("\nYou're all set! The GEE pipeline is ready to use.")
     
 except Exception as e:

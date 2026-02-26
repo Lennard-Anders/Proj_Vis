@@ -5,7 +5,9 @@ Fetches satellite imagery and environmental data for wildfire risk analysis
 import ee
 import json
 import logging
+import os
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import numpy as np
 
@@ -17,24 +19,36 @@ class GEEDataPipeline:
     """Google Earth Engine data pipeline for wildfire risk features"""
     
     def __init__(self, service_account_key: Optional[str] = None, project: Optional[str] = None):
-        """
-        Initialize GEE connection
-        
-        Args:
-            service_account_key: Path to GEE service account JSON key file
-            project: GEE project ID (e.g., 'ee-username' or 'my-project-123')
-        """
+        """Initialize GEE connection, preferring a service account key from env."""
+        # Resolve config from env if not explicitly provided
+        key_path = service_account_key or os.getenv("GEE_SERVICE_ACCOUNT_KEY")
+        project_id = project or os.getenv("GEE_PROJECT") or "data-visuaization-project"  # Note: Correct spelling from key file
+        service_account_email = os.getenv("GEE_SERVICE_ACCOUNT_EMAIL")
+
+        # If no explicit SA email was provided, try to read it from the key file
+        if not service_account_email and key_path and Path(key_path).exists():
+            try:
+                with open(key_path, "r", encoding="utf-8") as f:
+                    key_data = json.load(f)
+                    service_account_email = key_data.get("client_email")
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Could not read service account email from key file: %s", exc)
+
         try:
-            if service_account_key:
+            if key_path:
+                if not service_account_email:
+                    raise ValueError("Service account email missing for GEE credentials")
+
                 credentials = ee.ServiceAccountCredentials(
-                    email=None,
-                    key_file=service_account_key
+                    email=service_account_email,
+                    key_file=key_path,
                 )
-                ee.Initialize(credentials, project=project)
+                ee.Initialize(credentials, project=project_id)
             else:
                 # Use default credentials with configured project
-                ee.Initialize(project=project or 'data-visuaization-project')
-            logger.info(f"Google Earth Engine initialized successfully with project: {project or 'data-visuaization-project'}")
+                ee.Initialize(project=project_id)
+
+            logger.info("Google Earth Engine initialized successfully with project: %s", project_id)
         except Exception as e:
             logger.error(f"Failed to initialize GEE: {e}")
             logger.info("Tip: Sign up at https://earthengine.google.com/signup/ if you haven't already")

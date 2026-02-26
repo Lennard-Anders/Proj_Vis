@@ -126,3 +126,14 @@ export interface AIRiskGridResponse {
   grid_size_deg: number;
   resolution: number;
 }
+
+export interface AIRiskConfidenceResponse {
+  confidence_percent: number;
+}
+
+export interface WildfireLlmResponse {
+  wildfire_probability_percent: number;
+  explanation: string;
+  feature_contributions?: Array<{ feature: string; weight: number }>;
+  feature_interactions?: Array<{ pair: string; weight: number }>;
+}

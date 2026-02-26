@@ -2,25 +2,46 @@ import React from "react";
 import type { ExplainResponse } from "../../api/types";
 import { useExplanation } from "../../state/selectors";
 import { useTriViewState, TriViewState } from "../../state/store";
+import InfoPopover from "../InfoPopover";
+
+const EXPLANATION_INFO = {
+  description:
+    "Explains the AI prediction at the selected location, including risk level, key drivers, and recommendations. If AI output is unavailable, shows the LLM assessment.",
+  abbreviations: [
+    { term: "AI", meaning: "Artificial Intelligence model output." },
+    { term: "LLM", meaning: "Large Language Model narrative." },
+  ],
+};
 
 const ExplanationPanel: React.FC = () => {
   const explanation = useExplanation();
   const aiRiskPrediction = useTriViewState((state: TriViewState) => state.aiRiskPrediction);
+  const aiRiskConfidencePercent = useTriViewState((state: TriViewState) => state.aiRiskConfidencePercent);
+  const wildfireLlmExplanation = useTriViewState((state: TriViewState) => state.wildfireLlmExplanation);
 
   // DEBUG: Log what we have
   console.log('ExplanationPanel render:', { 
     hasAiPrediction: !!aiRiskPrediction, 
     hasExplanation: !!explanation,
-    aiRiskPrediction 
+    hasWildfireLlmExplanation: !!wildfireLlmExplanation,
+    aiRiskConfidencePercent,
+    aiRiskPrediction,
+    wildfireLlmExplanation,
   });
 
-  // Show AI prediction if available, otherwise fall back to traditional explanation
+  // Show AI prediction if available, otherwise fall back to LLM or traditional explanation
   if (aiRiskPrediction) {
     const { probability, risk_level, risk_color, contributing_factors, recommendations, confidence, features } = aiRiskPrediction;
     
     return (
       <div className="panel">
-        <h2>🤖 AI Risk Explanation</h2>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "var(--spacing-md)" }}>
+          <h2 style={{ margin: 0 }}>🤖 AI Risk Explanation</h2>
+          <InfoPopover
+            description={EXPLANATION_INFO.description}
+            abbreviations={EXPLANATION_INFO.abbreviations}
+          />
+        </div>
         
         {/* Risk Level Display */}
         <div style={{
@@ -44,8 +65,14 @@ const ExplanationPanel: React.FC = () => {
             Probability: <strong>{(probability * 100).toFixed(1)}%</strong>
           </div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
-            Confidence: {(confidence * 100).toFixed(0)}%
+            Confidence (model): {(confidence * 100).toFixed(0)}%
           </div>
+
+          {typeof aiRiskConfidencePercent === "number" && (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              Confidence (AI): {aiRiskConfidencePercent.toFixed(0)}%
+            </div>
+          )}
         </div>
 
         {/* Environmental Conditions */}
@@ -155,61 +182,36 @@ const ExplanationPanel: React.FC = () => {
     );
   }
 
-  // Fallback to traditional explanation
-  if (!explanation) {
+  if (wildfireLlmExplanation) {
+    const { wildfire_probability_percent, explanation: llmText } = wildfireLlmExplanation;
     return (
       <div className="panel">
-        <h2>AI Explanation</h2>
-        <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          Adjust parameters in the <strong>What-If panel</strong> and click <strong>"Calculate AI Risk"</strong> to see AI-powered predictions.
-        </p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "var(--spacing-md)" }}>
+          <h2 style={{ margin: 0 }}>🧠 LLM Wildfire Assessment</h2>
+          <InfoPopover
+            description={EXPLANATION_INFO.description}
+            abbreviations={EXPLANATION_INFO.abbreviations}
+          />
+        </div>
+        <div style={{
+          padding: 'var(--spacing-md)',
+          background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+          borderRadius: '8px',
+          marginBottom: 'var(--spacing-md)',
+          border: '1px solid #3b82f6'
+        }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Estimated Wildfire Probability</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1d4ed8', marginTop: '4px' }}>
+            {wildfire_probability_percent}%
+          </div>
+        </div>
+        <p style={{ fontSize: '0.9rem', lineHeight: 1.5 }}>{llmText}</p>
       </div>
     );
   }
 
-  return (
-    <div className="panel">
-      <h2>AI Explanation</h2>
-      <div style={{
-        padding: 'var(--spacing-md)',
-        background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-        borderRadius: '8px',
-        marginBottom: 'var(--spacing-md)',
-        border: '2px solid var(--accent-yellow)'
-      }}>
-        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Predicted Risk Probability</div>
-        <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--accent-orange)' }}>
-          {(explanation.probability * 100).toFixed(1)}%
-        </div>
-      </div>
-      <h3>📊 Feature Contributions</h3>
-      <ul>
-        {explanation.local_shap.map((item: ExplainResponse["local_shap"][number]) => (
-          <li key={item.feature}>
-            {item.feature}: {item.contribution.toFixed(2)}
-          </li>
-        ))}
-      </ul>
-      <h3>🔗 Feature Interactions</h3>
-      <ul>
-        {explanation.interactions.map((interaction: ExplainResponse["interactions"][number]) => (
-          <li key={interaction.pair.join("-")}>
-            {interaction.pair.join(" × ")}: {interaction.value.toFixed(2)}
-          </li>
-        ))}
-      </ul>
-      <div style={{
-        marginTop: 'var(--spacing-md)',
-        padding: 'var(--spacing-sm) var(--spacing-md)',
-        background: explanation.ood ? 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-        borderRadius: '6px',
-        border: `1px solid ${explanation.ood ? 'var(--accent-red)' : 'var(--success-green)'}`,
-        display: 'inline-block'
-      }}>
-        <strong>Data Quality:</strong> {explanation.ood ? "⚠️ Out of Distribution" : "✅ Within Distribution"}
-      </div>
-    </div>
-  );
+  // If no LLM explanation and no classic explanation, render nothing
+  return null;
 };
 
 export default ExplanationPanel;
